@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1001,
+    "name": "",
+    "nodeLevel": 1,
+    "nodeIncome": 200,
+    "nodeCost": 50
+  },
+  {
+    "id": 1002,
+    "name": "",
+    "nodeLevel": 2,
+    "nodeIncome": 500,
+    "nodeCost": 100
+  },
+  {
+    "id": 1003,
+    "name": "",
+    "nodeLevel": 3,
+    "nodeIncome": 1000,
+    "nodeCost": 200
+  },
+  {
+    "id": 1004,
+    "name": "",
+    "nodeLevel": 4,
+    "nodeIncome": 2000,
+    "nodeCost": 800
+  },
+  {
+    "id": 1005,
+    "name": "",
+    "nodeLevel": 5,
+    "nodeIncome": 3000,
+    "nodeCost": 1400
+  }
+]

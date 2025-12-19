@@ -1,0 +1,71 @@
+@startuml
+!define RECTANGLE class
+
+' 流程状态定义
+RECTANGLE AnyState {
+    :Any State;
+}
+
+RECTANGLE Pause {
+    :暂停并返回主界面;
+}
+
+RECTANGLE MainMenu {
+    :主界面;
+}
+
+RECTANGLE LoadingGame {
+    :加载游戏场景;
+}
+
+RECTANGLE StartRound {
+    :开始回合;
+}
+
+RECTANGLE RandomNode {
+    :随机生成节点;
+}
+
+RECTANGLE ViewRoundBuff {
+    :查看回合Buff (随机);
+}
+
+RECTANGLE ConnectModifyRoute {
+    :连接/修改航线;
+}
+
+RECTANGLE Settlement {
+    :结算;
+}
+
+RECTANGLE Bankruptcy {
+    :破产;
+}
+
+RECTANGLE EndGame {
+    :结束游戏;
+}
+
+RECTANGLE PurchaseBuff {
+    :购买增益;
+}
+
+' 状态转移
+AnyState -down-> Pause : 暂停并返回主界面
+Pause -down-> MainMenu : 返回主界面
+MainMenu -down-> LoadingGame : 开始游戏
+LoadingGame -down-> StartRound : 场景加载完成
+StartRound -down-> RandomNode : 随机生成节点
+RandomNode -down-> ViewRoundBuff : 查看回合Buff
+ViewRoundBuff -down-> ConnectModifyRoute : 连接/修改航线
+ConnectModifyRoute -down-> Settlement : 结算
+Settlement -down-> Bankruptcy : 破产
+Settlement -down-> EndGame : 结束游戏
+Settlement -down-> PurchaseBuff : 购买增益
+PurchaseBuff -down-> StartRound : 返回开始回合
+Bankruptcy -down-> EndGame : 结束游戏
+
+' 结束流程
+EndGame -down-> MainMenu : 返回主菜单
+
+@enduml
