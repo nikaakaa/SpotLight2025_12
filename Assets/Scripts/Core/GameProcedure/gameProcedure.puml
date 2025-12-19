@@ -1,0 +1,75 @@
+@startuml
+!define RECTANGLE class
+
+' 流程状态定义 - 顶层
+RECTANGLE MainMenu {
+    :主界面;
+}
+
+RECTANGLE LoadingGame {
+    :加载游戏场景;
+}
+
+RECTANGLE Pause {
+    :暂停并返回主界面;
+}
+
+RECTANGLE Bankruptcy {
+    :破产;
+}
+
+RECTANGLE EndGame {
+    :结束游戏;
+}
+
+' 游戏逻辑复合状态
+package "GameLogicState" {
+    RECTANGLE StartRound {
+        :开始回合;
+    }
+
+    RECTANGLE RandomNode {
+        :随机生成节点;
+    }
+
+    RECTANGLE ViewRoundBuff {
+        :查看回合Buff (随机);
+    }
+
+    RECTANGLE ConnectModifyRoute {
+        :连接/修改航线;
+    }
+
+    RECTANGLE Settlement {
+        :结算;
+    }
+
+    RECTANGLE PurchaseBuff {
+        :购买增益;
+    }
+}
+
+' 顶层状态转移
+MainMenu -down-> LoadingGame : 开始游戏
+LoadingGame -down-> StartRound : 场景加载完成
+
+' 全局转换
+MainMenu <-down- Pause : 返回主界面
+
+' GameLogic 内部转换
+StartRound -down-> RandomNode : 随机生成节点
+RandomNode -down-> ViewRoundBuff : 查看回合Buff
+ViewRoundBuff -down-> ConnectModifyRoute : 连接/修改航线
+ConnectModifyRoute -down-> Settlement : 结算
+Settlement -down-> PurchaseBuff : 购买增益
+PurchaseBuff -up-> StartRound : 返回开始回合 (循环)
+
+' 从 GameLogic 退出
+Settlement -right-> Bankruptcy : 破产
+Settlement -right-> EndGame : 结束游戏
+Bankruptcy -down-> EndGame : 结束游戏
+
+' 结束流程
+EndGame -left-> MainMenu : 返回主菜单
+
+@enduml

@@ -8,6 +8,8 @@ public class LoadingGameState : LeafState<GameProcedureContext>
 {
     private AsyncOperation loadOperation;
     private bool isLoading;
+    private bool isSceneLoaded;
+    private bool isTableLoaded;
 
     public LoadingGameState()
     {
@@ -16,13 +18,15 @@ public class LoadingGameState : LeafState<GameProcedureContext>
 
     protected override void OnEnter(GameProcedureContext ctx)
     {
-        Debug.Log($"[{Name}] Enter - 开始加载游戏场景");
+        Debug.Log($"[{Name}] Enter - 开始加载游戏场景和配置表");
         isLoading = true;
+        isSceneLoaded = false;
+        isTableLoaded = false;
         
         // TODO: 显示加载UI
         // UIManager.Instance.ShowPanel<LoadingPanel>();
         
-        // 异步加载游戏场景
+        // 1. 异步加载游戏场景
         loadOperation = SceneManager.LoadSceneAsync("GameScene");
         if (loadOperation != null)
         {
@@ -31,23 +35,34 @@ public class LoadingGameState : LeafState<GameProcedureContext>
         else
         {
             Debug.LogError($"[{Name}] 场景加载失败，请检查场景名称");
-            isLoading = false;
-            ctx.Next();
+            isSceneLoaded = true; // 标记为完成以便继续流程
+        }
+        
+        // 2. 加载配置表（如果尚未加载）
+        if (!TableLoader.IsLoaded)
+        {
+            TableLoader.LoadTablesAsync(OnTableLoaded);
+        }
+        else
+        {
+            Debug.Log($"[{Name}] 配置表已加载，跳过");
+            isTableLoaded = true;
         }
     }
 
     protected override void OnUpdate(GameProcedureContext ctx)
     {
-        if (!isLoading || loadOperation == null) return;
+        if (!isLoading) return;
         
         // TODO: 更新加载进度
-        // float progress = loadOperation.progress;
-        // LoadingPanel.Instance?.SetProgress(progress);
+        // float sceneProgress = loadOperation?.progress ?? 1f;
+        // float totalProgress = (sceneProgress + (isTableLoaded ? 1f : 0f)) / 2f;
+        // LoadingPanel.Instance?.SetProgress(totalProgress);
     }
 
     protected override void OnExit(GameProcedureContext ctx)
     {
-        Debug.Log($"[{Name}] Exit - 场景加载完成");
+        Debug.Log($"[{Name}] Exit - 加载完成");
         loadOperation = null;
         isLoading = false;
         
@@ -55,12 +70,27 @@ public class LoadingGameState : LeafState<GameProcedureContext>
         // UIManager.Instance.HidePanel<LoadingPanel>();
     }
 
+    private void OnTableLoaded()
+    {
+        Debug.Log($"[{Name}] 配置表加载完成");
+        isTableLoaded = true;
+        TryProceedToNextState();
+    }
+
     private void OnSceneLoaded(AsyncOperation operation)
     {
         Debug.Log($"[{Name}] 场景加载完成");
-        isLoading = false;
-        
-        // 场景加载完成，自动推进到下一状态
-        GameProcedure.Instance?.Context?.Next();
+        isSceneLoaded = true;
+        TryProceedToNextState();
+    }
+
+    private void TryProceedToNextState()
+    {
+        // 场景和配置表都加载完成后，才进入下一状态
+        if (isSceneLoaded && isTableLoaded)
+        {
+            isLoading = false;
+            GameProcedure.Instance?.Context?.Next();
+        }
     }
 }

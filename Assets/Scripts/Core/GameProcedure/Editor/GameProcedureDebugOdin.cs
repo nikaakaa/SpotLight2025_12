@@ -148,26 +148,28 @@ public class GameProcedureDebugOdin : OdinEditorWindow
         var currentState = CurrentState;
 
         // 根据当前状态返回可能的转换目标
+        // 注意：层级状态显示为 "GameLogicState/SubState"
         transitions = currentState switch
         {
-            "MainMenuState" => new List<string> { "LoadingGameState (StartRound)", "QuitGame (Quit)" },
-            "LoadingGameState" => new List<string> { "StartRoundState (Next) [自动]" },
-            "PauseToMenu" => new List<string> { "MainMenuState (ReturnToMenu)" },
-            "StartRoundState" => new List<string> { "RandomNodeState (Next)" },
-            "RandomNodeState" => new List<string> { "ViewRoundBuff (Next)" },
-            "ViewRoundBuff" => new List<string> { "ConnectModifyRouteState (Next)" },
-            "ConnectModifyRouteState" => new List<string> { "SettlementState (Next)" },
-            "SettlementState" => new List<string> { "PurchaseBuffState (Next)", "Bankruptcy (Bankruptcy)", "EndGame (EndGame)" },
-            "PurchaseBuffState" => new List<string> { "StartRoundState (Next)" },
-            "Bankruptcy" => new List<string> { "EndGame (Next)" },
-            "EndGame" => new List<string> { "MainMenuState (ReturnToMenu)" },
+            "MainMenuState" => new List<string> { "LoadingGameState (StartRound)", "QuitGameState (Quit)" },
+            "LoadingGameState" => new List<string> { "GameLogicState (Next) [自动]" },
+            "PauseToMenuState" => new List<string> { "MainMenuState (ReturnToMenu)" },
+            // GameLogic 内部状态
+            "GameLogicState/StartRoundState" => new List<string> { "RandomNodeState (Next)" },
+            "GameLogicState/RandomNodeState" => new List<string> { "ViewRoundBuffState (Next)" },
+            "GameLogicState/ViewRoundBuffState" => new List<string> { "ConnectModifyRouteState (Next)" },
+            "GameLogicState/ConnectModifyRouteState" => new List<string> { "SettlementState (Next)" },
+            "GameLogicState/SettlementState" => new List<string> { "PurchaseBuffState (Next)", "Bankruptcy (Bankruptcy)", "EndGame (EndGame)" },
+            "GameLogicState/PurchaseBuffState" => new List<string> { "StartRoundState (Next) [循环]" },
+            "BankruptcyState" => new List<string> { "EndGameState (Next)" },
+            "EndGameState" => new List<string> { "MainMenuState (ReturnToMenu)" },
             _ => new List<string>()
         };
 
         // 全局转换（任何状态都可以触发）
-        if (currentState != "PauseToMenu" && currentState != "MainMenuState")
+        if (!currentState.Contains("PauseToMenu") && !currentState.Contains("MainMenu"))
         {
-            transitions.Add("PauseToMenu (PauseToMenu) [全局]");
+            transitions.Add("PauseToMenuState (PauseToMenu) [全局]");
         }
 
         return transitions;
@@ -194,18 +196,21 @@ public class GameProcedureDebugOdin : OdinEditorWindow
     {
         return new List<string>
         {
+            // 顶层状态
             "MainMenuState",
             "LoadingGameState",
-            "PauseToMenu",
+            "GameLogicState",
+            "PauseToMenuState",
+            "BankruptcyState",
+            "EndGameState",
+            "QuitGameState",
+            // GameLogic 子状态（需要通过 GameLogicState 跳转）
             "StartRoundState",
             "RandomNodeState",
-            "ViewRoundBuff",
+            "ViewRoundBuffState",
             "ConnectModifyRouteState",
             "SettlementState",
-            "PurchaseBuffState",
-            "Bankruptcy",
-            "EndGame",
-            "QuitGame"
+            "PurchaseBuffState"
         };
     }
 
@@ -240,40 +245,42 @@ public class GameProcedureDebugOdin : OdinEditorWindow
     [PropertyOrder(100)]
     public string FlowChart => @"
 ┌─────────────┐
-│  MainMenu   │ ◀───────────────────────────────────┐
-└──────┬──────┘                                     │
-       │ StartRound                                 │ ReturnToMenu
-       ▼                                            │
-┌─────────────┐                                     │
-│ LoadingGame │ ← 加载场景                           │
-└──────┬──────┘                                     │
-       │ Next (自动)                                 │
-       ▼                                            │
-┌─────────────┐                                     │
-│ StartRound  │◀───────────────────┐                │
-└──────┬──────┘                    │                │
-       │ Next                      │ Next (循环)    │
-       ▼                           │                │
-┌─────────────┐             ┌──────┴────────┐       │
-│ RandomNode  │             │  PurchaseBuff  │       │
-└──────┬──────┘             └───────▲───────┘       │
-       │ Next                       │ Next          │
-       ▼                            │               │
-┌──────────────┐             ┌──────┴───────┐       │
-│ ViewRoundBuff │             │  Settlement  │───────┤
-└──────┬───────┘             └──────┬───────┘       │
-       │ Next                       │               │
-       ▼                     ┌──────┼───────┐       │
-┌───────────────────┐  Bankruptcy   │    EndGame    │
-│ConnectModifyRoute │        │      │       │       │
-└────────┬──────────┘        ▼      │       ▼       │
-         │ Next         ┌──────────┐ │  ┌─────────┐  │
-         └──────────────│Bankruptcy│ │  │ EndGame │──┘
-                        └───┬──────┘ │  └─────────┘
-                            │ Next   │
-                            └────────┴──▶ EndGame
+│  MainMenu   │ ◀────────────────────────────────────────┐
+└──────┬──────┘                                          │
+       │ StartRound                                      │ ReturnToMenu
+       ▼                                                 │
+┌─────────────┐                                          │
+│ LoadingGame │ ← 加载场景                                │
+└──────┬──────┘                                          │
+       │ Next (自动)                                      │
+       ▼                                                 │
+┌════════════════════════════════════════════════════┐   │
+║              GameLogicState (复合状态)              ║   │
+║  ┌───────────┐                                     ║   │
+║  │StartRound │◀─────────────────┐                  ║   │
+║  └─────┬─────┘                  │ Next (循环)      ║   │
+║        │ Next                   │                  ║   │
+║        ▼                        │                  ║   │
+║  ┌───────────┐           ┌──────┴───────┐          ║   │
+║  │RandomNode │           │ PurchaseBuff │          ║   │
+║  └─────┬─────┘           └──────▲───────┘          ║   │
+║        │ Next                   │ Next             ║   │
+║        ▼                        │                  ║   │
+║  ┌─────────────┐          ┌─────┴──────┐           ║   │
+║  │ViewRoundBuff│          │ Settlement │──┬──────────▶ Bankruptcy/EndGame
+║  └─────┬───────┘          └─────▲──────┘  │        ║   │
+║        │ Next                   │         │        ║   │
+║        ▼                        │         │        ║   │
+║  ┌───────────────────┐          │         │        ║   │
+║  │ConnectModifyRoute │──────────┘         │        ║   │
+║  └───────────────────┘   Next             │        ║   │
+╚════════════════════════════════════════════════════╝   │
+                                                         │
+       ┌──────────┐      ┌──────────┐                    │
+       │Bankruptcy│─Next→│ EndGame  │────────────────────┘
+       └──────────┘      └──────────┘
 
-结算三出口: Next→购买增益 | Bankruptcy→破产 | EndGame→结束
+结算退出: Bankruptcy→破产 | EndGame→结束（跳出 GameLogicState）
 ※ 任意状态可通过 PauseToMenu 事件暂停到菜单
 ";
 

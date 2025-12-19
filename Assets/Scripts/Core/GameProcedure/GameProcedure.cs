@@ -16,7 +16,23 @@ public class GameProcedure:MonoBehaviour
     /// <summary>
     /// 获取当前状态名称
     /// </summary>
-    public string CurrentStateName => rootState?.CurrentSubState?.Name ?? "None";
+    public string CurrentStateName
+    {
+        get
+        {
+            var current = rootState?.CurrentSubState;
+            if (current is GameLogicState gameLogic)
+            {
+                return $"{current.Name}/{gameLogic.CurrentSubStateName}";
+            }
+            return current?.Name ?? "None";
+        }
+    }
+
+    /// <summary>
+    /// 获取游戏逻辑状态（用于子状态转换）
+    /// </summary>
+    public GameLogicState GameLogicState { get; private set; }
 
     void Awake()
     {
@@ -29,32 +45,55 @@ public class GameProcedure:MonoBehaviour
         instance = this;
         DontDestroyOnLoad(gameObject); // 跨场景保持流程状态
         
-        // ========== 状态实例化 ==========
+        // ========== 顶层状态实例化 ==========
         var mainMenuState = new MainMenuState();
         var loadingGameState = new LoadingGameState();
+        var pauseToMenuState = new PauseToMenuState();
+        var bankruptcyState = new BankruptcyState();
+        var endGameState = new EndGameState();
+        var quitGameState = new QuitGameState();
+
+        // ========== 游戏逻辑子状态实例化 ==========
         var startRoundState = new StartRoundState();
         var randomNodeState = new RandomNodeState();
         var viewRoundBuffState = new ViewRoundBuffState();
         var connectModifyRouteState = new ConnectModifyRouteState();
         var settlementState = new SettlementState();
         var purchaseBuffState = new PurchaseBuffState();
-        var pauseToMenuState = new PauseToMenuState();
-        var bankruptcyState = new BankruptcyState();
-        var endGameState = new EndGameState();
-        var quitGameState = new QuitGameState();
 
-        // ========== 构建状态机（直接在 root 层注册状态） ==========
+        // ========== 构建 GameLogicState（游戏循环复合状态） ==========
+        GameLogicState = new GameLogicState();
+        GameLogicState
+            .RegisterSubState(startRoundState)
+            .RegisterSubState(randomNodeState)
+            .RegisterSubState(viewRoundBuffState)
+            .RegisterSubState(connectModifyRouteState)
+            .RegisterSubState(settlementState)
+            .RegisterSubState(purchaseBuffState);
+        GameLogicState.CurrentSubState = startRoundState; // 默认从 StartRound 开始
+
+        // GameLogic 内部转换
+        GameLogicState
+            .RegisterTransition(new LambdaTransition<GameProcedureContext>(
+                startRoundState, randomNodeState, ctx => ctx.Consume(GameEvent.Next)))
+            .RegisterTransition(new LambdaTransition<GameProcedureContext>(
+                randomNodeState, viewRoundBuffState, ctx => ctx.Consume(GameEvent.Next)))
+            .RegisterTransition(new LambdaTransition<GameProcedureContext>(
+                viewRoundBuffState, connectModifyRouteState, ctx => ctx.Consume(GameEvent.Next)))
+            .RegisterTransition(new LambdaTransition<GameProcedureContext>(
+                connectModifyRouteState, settlementState, ctx => ctx.Consume(GameEvent.Next)))
+            .RegisterTransition(new LambdaTransition<GameProcedureContext>(
+                settlementState, purchaseBuffState, ctx => ctx.Consume(GameEvent.Next)))
+            .RegisterTransition(new LambdaTransition<GameProcedureContext>(
+                purchaseBuffState, startRoundState, ctx => ctx.Consume(GameEvent.Next))); // 循环
+
+        // ========== 构建根状态机 ==========
         rootState = HFSMBuilder<GameProcedureContext>.Create()
-            // 注册所有状态（直接挂在 root 下，不创建额外的 Compose 层）
+            // 注册顶层状态
             .SubState(mainMenuState, isDefault: true)
-            .SubState(pauseToMenuState)
             .SubState(loadingGameState)
-            .SubState(startRoundState)
-            .SubState(randomNodeState)
-            .SubState(viewRoundBuffState)
-            .SubState(connectModifyRouteState)
-            .SubState(settlementState)
-            .SubState(purchaseBuffState)
+            .SubState(GameLogicState)
+            .SubState(pauseToMenuState)
             .SubState(bankruptcyState)
             .SubState(endGameState)
             .SubState(quitGameState)
@@ -65,25 +104,16 @@ public class GameProcedure:MonoBehaviour
 
             // ===== 主流程 =====
             .Transition(mainMenuState, loadingGameState, ctx => ctx.Consume(GameEvent.StartRound))
-            .Transition(loadingGameState, startRoundState, ctx => ctx.Consume(GameEvent.Next))
+            .Transition(loadingGameState, GameLogicState, ctx => ctx.Consume(GameEvent.Next))
             .Transition(mainMenuState, quitGameState, ctx => ctx.Consume(GameEvent.Quit))
 
-            // ===== 回合流程 =====
-            .Transition(startRoundState, randomNodeState, ctx => ctx.Consume(GameEvent.Next))
-            .Transition(randomNodeState, viewRoundBuffState, ctx => ctx.Consume(GameEvent.Next))
-            .Transition(viewRoundBuffState, connectModifyRouteState, ctx => ctx.Consume(GameEvent.Next))
-            .Transition(connectModifyRouteState, settlementState, ctx => ctx.Consume(GameEvent.Next))
-
-            // ===== 结算分支（三个出口） =====
-            .Transition(settlementState, purchaseBuffState, ctx => ctx.Consume(GameEvent.Next))         // 正常继续
-            .Transition(settlementState, bankruptcyState, ctx => ctx.Consume(GameEvent.Bankruptcy))     // 破产
-            .Transition(settlementState, endGameState, ctx => ctx.Consume(GameEvent.EndGame))           // 直接结束游戏
-
-            // ===== 循环回合 =====
-            .Transition(purchaseBuffState, startRoundState, ctx => ctx.Consume(GameEvent.Next))
+            // ===== 从 GameLogic 退出的转换 =====
+            .Transition(GameLogicState, bankruptcyState, ctx => ctx.Consume(GameEvent.Bankruptcy))
+            .Transition(GameLogicState, endGameState, ctx => ctx.Consume(GameEvent.EndGame))
 
             // ===== 破产/结束流程 =====
             .Transition(bankruptcyState, endGameState, ctx => ctx.Consume(GameEvent.Next))
+            .Transition(bankruptcyState, mainMenuState, ctx => ctx.Consume(GameEvent.ReturnToMenu))
             .Transition(endGameState, mainMenuState, ctx => ctx.Consume(GameEvent.ReturnToMenu))
             .Build();
 

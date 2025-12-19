@@ -2,36 +2,36 @@
   {
     "id": 1001,
     "name": "",
-    "nodeLevel": 1,
-    "nodeIncome": 200,
-    "nodeCost": 50
+    "nodeLevel": "",
+    "nodeIncome": 1,
+    "nodeCost": 200
   },
   {
     "id": 1002,
     "name": "",
-    "nodeLevel": 2,
-    "nodeIncome": 500,
-    "nodeCost": 100
+    "nodeLevel": "",
+    "nodeIncome": 2,
+    "nodeCost": 500
   },
   {
     "id": 1003,
     "name": "",
-    "nodeLevel": 3,
-    "nodeIncome": 1000,
-    "nodeCost": 200
+    "nodeLevel": "",
+    "nodeIncome": 3,
+    "nodeCost": 1000
   },
   {
     "id": 1004,
     "name": "",
-    "nodeLevel": 4,
-    "nodeIncome": 2000,
-    "nodeCost": 800
+    "nodeLevel": "",
+    "nodeIncome": 4,
+    "nodeCost": 2000
   },
   {
     "id": 1005,
     "name": "",
-    "nodeLevel": 5,
-    "nodeIncome": 3000,
-    "nodeCost": 1400
+    "nodeLevel": "",
+    "nodeIncome": 5,
+    "nodeCost": 3000
   }
 ]
