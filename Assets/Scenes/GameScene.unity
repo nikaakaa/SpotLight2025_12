@@ -382,14 +382,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   panSpeed: 20
-  panDamping: 5
+  panSmoothing: 0.18
   zoomSpeed: 5
   minZoom: 5
   maxZoom: 100
-  zoomDamping: 5
-  useBounds: 0
-  boundsMin: {x: -100, y: -100}
-  boundsMax: {x: 100, y: 100}
+  zoomSmoothing: 0.1
 --- !u!4 &1110858901
 Transform:
   m_ObjectHideFlags: 0

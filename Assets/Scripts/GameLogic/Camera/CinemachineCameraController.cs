@@ -12,24 +12,40 @@ public class CinemachineCameraController : MonoBehaviour
     [SerializeField] private float panSmoothing = 0.1f;  // 0=无缓动, 1=很慢
 
     [Header("缩放设置")]
-    [SerializeField] private float zoomSpeed = 2f;
+    [SerializeField] private float zoomSpeed = 5f;
     [SerializeField] private float minZoom = 5f;
-    [SerializeField] private float maxZoom = 50f;
+    [SerializeField] private float maxZoom = 100f;
     [SerializeField] private float zoomSmoothing = 0.1f;
 
     private Camera cam;
     private Vector3 lastMousePos;
     private float targetZoom;
+    private bool isOrthographic;
 
     void Start()
     {
         cam = GetComponent<Camera>();
         if (cam == null) cam = Camera.main;
 
-        if (cam != null && cam.orthographic)
+        if (cam != null)
         {
-            targetZoom = cam.orthographicSize;
+            isOrthographic = cam.orthographic;
+            if (isOrthographic)
+            {
+                targetZoom = cam.orthographicSize;
+            }
+            else
+            {
+                // 透视相机用 Z 位置控制缩放
+                targetZoom = Mathf.Abs(transform.position.z);
+            }
         }
+        else
+        {
+            targetZoom = 20f;
+        }
+
+        Debug.Log($"[CameraController] 初始化: isOrthographic={isOrthographic}, targetZoom={targetZoom}");
     }
 
     void Update()
@@ -53,7 +69,7 @@ public class CinemachineCameraController : MonoBehaviour
             lastMousePos = Input.mousePosition;
 
             // 根据缩放比例调整移动速度
-            float zoomFactor = cam != null && cam.orthographic ? cam.orthographicSize / 10f : 1f;
+            float zoomFactor = targetZoom / 20f;
             Vector3 move = new Vector3(-delta.x, -delta.y, 0) * panSpeed * zoomFactor * 0.01f;
 
             // 直接移动（带轻微缓动）
@@ -67,15 +83,29 @@ public class CinemachineCameraController : MonoBehaviour
 
         if (Mathf.Abs(scroll) > 0.001f)
         {
-            targetZoom -= scroll * zoomSpeed * targetZoom * 0.5f;
+            targetZoom -= scroll * zoomSpeed * (targetZoom / 10f);
             targetZoom = Mathf.Clamp(targetZoom, minZoom, maxZoom);
         }
 
         // 应用缩放（带缓动）
-        if (cam != null && cam.orthographic)
+        if (cam != null)
         {
-            cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, targetZoom, 1f - zoomSmoothing);
+            float smoothFactor = 1f - zoomSmoothing;
+
+            if (isOrthographic)
+            {
+                // 正交相机：调整 orthographicSize
+                cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, targetZoom, smoothFactor);
+            }
+            else
+            {
+                // 透视相机：调整 Z 位置
+                Vector3 pos = transform.position;
+                pos.z = Mathf.Lerp(pos.z, -targetZoom, smoothFactor);
+                transform.position = pos;
+            }
         }
     }
 }
+
 
