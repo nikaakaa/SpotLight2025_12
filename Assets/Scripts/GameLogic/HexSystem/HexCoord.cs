@@ -244,20 +244,20 @@ public struct HexCoord : IEquatable<HexCoord>
     public List<HexCoord> LineToL(HexCoord target, bool preferQ = true)
     {
         var results = new List<HexCoord>();
-        
+
         int dq = target.q - this.q;
         int dr = target.r - this.r;
-        
+
         // 如果起点终点相同
         if (dq == 0 && dr == 0)
         {
             results.Add(this);
             return results;
         }
-        
+
         HexCoord current = this;
         results.Add(current);
-        
+
         // 找到拐点：L形路径的中间点
         HexCoord corner;
         if (preferQ)
@@ -270,7 +270,7 @@ public struct HexCoord : IEquatable<HexCoord>
             // 先保持 q 不变，走到目标的 r
             corner = new HexCoord(this.q, target.r);
         }
-        
+
         // 从起点到拐点的直线
         if (current != corner)
         {
@@ -282,7 +282,7 @@ public struct HexCoord : IEquatable<HexCoord>
             }
             current = corner;
         }
-        
+
         // 从拐点到终点的直线
         if (current != target)
         {
@@ -293,7 +293,7 @@ public struct HexCoord : IEquatable<HexCoord>
                 results.Add(secondLeg[i]);
             }
         }
-        
+
         return results;
     }
 
@@ -305,79 +305,79 @@ public struct HexCoord : IEquatable<HexCoord>
     public List<HexCoord> LineToLBest(HexCoord target)
     {
         var results = new List<HexCoord>();
-        
+
         // 起点终点相同
         if (this == target)
         {
             results.Add(this);
             return results;
         }
-        
+
         HexCoord current = this;
         results.Add(current);
-        
+
         // 计算起点到终点的向量（用于叉积计算）
         Vector3 startPos = HexConverter2D.HexToWorld(this);
         Vector3 endPos = HexConverter2D.HexToWorld(target);
         Vector3 lineDir = endPos - startPos;
         float lineLength = lineDir.magnitude;
-        
+
         // 上一步的移动方向（用于转向代价）
         int lastDirection = -1; // -1 表示还没有方向
-        
+
         // 转向代价权重
         const float turnPenalty = 0.3f;
         // 叉积偏好权重
         const float crossPenalty = 0.001f;
-        
+
         int maxSteps = this.DistanceTo(target) + 5;
         int steps = 0;
-        
+
         while (current != target && steps < maxSteps)
         {
             steps++;
             Vector3 currentPos = HexConverter2D.HexToWorld(current);
             int currentDist = current.DistanceTo(target);
-            
+
             // 找到最佳邻居
             HexCoord bestNeighbor = current;
             float bestScore = float.MaxValue;
             int bestDirection = -1;
-            
+
             for (int i = 0; i < 6; i++)
             {
                 HexCoord neighbor = current.GetNeighbor(i);
                 int neighborDist = neighbor.DistanceTo(target);
-                
+
                 // 必须让距离减少（不走回头路）
                 if (neighborDist >= currentDist)
                     continue;
-                
+
                 // 基础代价 = 距离
                 float score = neighborDist;
-                
+
                 // === 转向代价 ===
                 if (lastDirection >= 0 && i != lastDirection)
                 {
                     // 计算转向角度（方向差）
                     int dirDiff = Mathf.Abs(i - lastDirection);
                     if (dirDiff > 3) dirDiff = 6 - dirDiff; // 取较小的角度差
-                    
+
                     // 转向越大，代价越高
                     score += dirDiff * turnPenalty;
                 }
-                
+
                 // === 叉积偏好：偏离直线的程度 ===
                 Vector3 neighborPos = HexConverter2D.HexToWorld(neighbor);
                 Vector3 toNeighbor = neighborPos - startPos;
-                
+
                 // 2D叉积（在XY平面）：|A × B| = |Ax*By - Ay*Bx|
                 float cross = Mathf.Abs(lineDir.x * toNeighbor.y - lineDir.y * toNeighbor.x);
                 // 归一化（除以线段长度，得到点到直线的距离）
                 float distToLine = cross / (lineLength + 0.001f);
-                
+
                 score += distToLine * crossPenalty;
-                
+
                 // 选择代价最低的
                 if (score < bestScore)
                 {
@@ -386,16 +386,16 @@ public struct HexCoord : IEquatable<HexCoord>
                     bestDirection = i;
                 }
             }
-            
+
             // 没找到更好的邻居
             if (bestNeighbor == current)
                 break;
-            
+
             current = bestNeighbor;
             lastDirection = bestDirection;
             results.Add(current);
         }
-        
+
         return results;
     }
 
@@ -415,7 +415,19 @@ public struct HexCoord : IEquatable<HexCoord>
 
         public int CompareTo(AStarNode other)
         {
-            return F.CompareTo(other.F);
+            // 主排序：F 值（总代价）
+            int fCompare = F.CompareTo(other.F);
+            if (fCompare != 0) return fCompare;
+
+            // 次级排序：H 值（优先选择离终点更近的）
+            int hCompare = H.CompareTo(other.H);
+            if (hCompare != 0) return hCompare;
+
+            // 最终排序：坐标字典序（保证确定性）
+            int qCompare = Coord.q.CompareTo(other.Coord.q);
+            if (qCompare != 0) return qCompare;
+
+            return Coord.r.CompareTo(other.Coord.r);
         }
     }
 
@@ -429,27 +441,49 @@ public struct HexCoord : IEquatable<HexCoord>
     /// <returns>最优路径</returns>
     public List<HexCoord> FindPathAStar(HexCoord target, float turnPenalty = 0.3f, float crossPenalty = 0.001f)
     {
+        return FindPathAStar(target, null, null, turnPenalty, crossPenalty);
+    }
+
+    /// <summary>
+    /// A* 寻路算法（带障碍物避让 + 转向代价 + 叉积偏好）
+    /// 保证全局最优路径，尽量走直线，减少转弯，同时避开已占用的格子
+    /// </summary>
+    /// <param name="target">目标坐标</param>
+    /// <param name="blockedCoords">被阻挡的格子集合（其他航线已占用的格子）</param>
+    /// <param name="allowedEndpoints">允许通过的端点集合（节点所在位置）</param>
+    /// <param name="turnPenalty">转向代价权重（默认0.3）</param>
+    /// <param name="crossPenalty">偏离直线代价权重（默认0.001）</param>
+    /// <param name="blockedPenalty">经过被占用格子的额外代价（默认100，设为 float.MaxValue 则完全禁止）</param>
+    /// <returns>最优路径</returns>
+    public List<HexCoord> FindPathAStar(
+        HexCoord target,
+        HashSet<HexCoord> blockedCoords,
+        HashSet<HexCoord> allowedEndpoints,
+        float turnPenalty = 0.3f,
+        float crossPenalty = 0.001f,
+        float blockedPenalty = 100f)
+    {
         var results = new List<HexCoord>();
-        
+
         // 起点终点相同
         if (this == target)
         {
             results.Add(this);
             return results;
         }
-        
+
         // 计算起点到终点的向量（用于叉积偏好）
         Vector3 startPos = HexConverter2D.HexToWorld(this);
         Vector3 endPos = HexConverter2D.HexToWorld(target);
         Vector3 lineDir = endPos - startPos;
         float lineLength = lineDir.magnitude;
-        
+
         // Open 列表（待探索）和 Closed 集合（已探索）
         var openList = new List<AStarNode>();
         var closedSet = new HashSet<HexCoord>();
         // 用于快速查找节点（存储每个坐标的最佳节点）
         var nodeMap = new Dictionary<HexCoord, AStarNode>();
-        
+
         // 起始节点
         var startNode = new AStarNode
         {
@@ -461,39 +495,47 @@ public struct HexCoord : IEquatable<HexCoord>
         };
         openList.Add(startNode);
         nodeMap[this] = startNode;
-        
+
         int maxIterations = 10000; // 防止无限循环
         int iterations = 0;
-        
+
         while (openList.Count > 0 && iterations < maxIterations)
         {
             iterations++;
-            
+
             // 找到 F 值最小的节点
             openList.Sort();
             var current = openList[0];
             openList.RemoveAt(0);
-            
+
             // 到达目标
             if (current.Coord == target)
             {
                 return ReconstructPath(current);
             }
-            
+
             closedSet.Add(current.Coord);
-            
+
             // 探索所有邻居
             for (int i = 0; i < 6; i++)
             {
                 HexCoord neighborCoord = current.Coord.GetNeighbor(i);
-                
+
                 // 已经探索过
                 if (closedSet.Contains(neighborCoord))
                     continue;
-                
+
+                // 检查是否被阻挡（但允许端点通过）
+                bool isBlocked = blockedCoords != null && blockedCoords.Contains(neighborCoord);
+                bool isAllowedEndpoint = allowedEndpoints != null && allowedEndpoints.Contains(neighborCoord);
+
+                // 如果完全禁止通过被占用格子，且不是允许的端点，则跳过
+                if (isBlocked && !isAllowedEndpoint && blockedPenalty >= float.MaxValue)
+                    continue;
+
                 // 计算 G 代价
                 float moveCost = 1.0f; // 基础移动代价
-                
+
                 // 转向代价
                 if (current.Direction >= 0 && i != current.Direction)
                 {
@@ -501,18 +543,24 @@ public struct HexCoord : IEquatable<HexCoord>
                     if (dirDiff > 3) dirDiff = 6 - dirDiff;
                     moveCost += dirDiff * turnPenalty;
                 }
-                
+
+                // 被占用格子的额外代价（允许的端点不加代价）
+                if (isBlocked && !isAllowedEndpoint)
+                {
+                    moveCost += blockedPenalty;
+                }
+
                 float tentativeG = current.G + moveCost;
-                
+
                 // 检查是否已在 Open 列表中
                 AStarNode neighborNode;
                 bool isNew = !nodeMap.TryGetValue(neighborCoord, out neighborNode);
-                
+
                 if (isNew || tentativeG < neighborNode.G)
                 {
                     // 计算 H（启发式）
                     float h = CalculateHeuristic(neighborCoord, target, startPos, lineDir, lineLength, crossPenalty);
-                    
+
                     if (isNew)
                     {
                         neighborNode = new AStarNode
@@ -537,7 +585,7 @@ public struct HexCoord : IEquatable<HexCoord>
                 }
             }
         }
-        
+
         // 没找到路径，返回空
         return results;
     }
@@ -545,20 +593,20 @@ public struct HexCoord : IEquatable<HexCoord>
     /// <summary>
     /// 计算启发式函数（距离 + 叉积偏好）
     /// </summary>
-    private float CalculateHeuristic(HexCoord coord, HexCoord target, 
+    private float CalculateHeuristic(HexCoord coord, HexCoord target,
         Vector3 startPos, Vector3 lineDir, float lineLength, float crossPenalty)
     {
         // 基础启发式：六边形距离
         float h = coord.DistanceTo(target);
-        
+
         // 叉积偏好：偏离起点-终点直线的程度
         Vector3 coordPos = HexConverter2D.HexToWorld(coord);
         Vector3 toCoord = coordPos - startPos;
         float cross = Mathf.Abs(lineDir.x * toCoord.y - lineDir.y * toCoord.x);
         float distToLine = cross / (lineLength + 0.001f);
-        
+
         h += distToLine * crossPenalty;
-        
+
         return h;
     }
 
@@ -569,13 +617,13 @@ public struct HexCoord : IEquatable<HexCoord>
     {
         var path = new List<HexCoord>();
         var current = endNode;
-        
+
         while (current != null)
         {
             path.Insert(0, current.Coord);
             current = current.Parent;
         }
-        
+
         return path;
     }
 

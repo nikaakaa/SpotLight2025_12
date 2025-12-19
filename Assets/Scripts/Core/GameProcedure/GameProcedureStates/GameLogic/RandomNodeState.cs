@@ -6,8 +6,8 @@ using UnityEngine;
 public class RandomNodeState : LeafState<GameProcedureContext>
 {
     [Header("生成配置")]
-    private int nodeCount = 5;      // 每回合生成的节点数量
-    private int gridRadius = 5;     // 生成范围（六边形半径）
+    private int nodeCount = 5;       // 每回合生成的节点数量
+    private int minDistance = 3;     // 城市最小间隔（六边形格子数）
 
     public RandomNodeState()
     {
@@ -17,7 +17,7 @@ public class RandomNodeState : LeafState<GameProcedureContext>
     protected override void OnEnter(GameProcedureContext ctx)
     {
         Debug.Log($"[{Name}] Enter - 开始生成随机节点");
-        
+
         // 确保 AviationSystem 已初始化
         if (AviationSystem.Instance == null)
         {
@@ -25,15 +25,16 @@ public class RandomNodeState : LeafState<GameProcedureContext>
             return;
         }
 
-        // 设置六边形参数
+        // 设置六边形参数（如果还没设置）
         HexMetrics.SetSize(1f);
         HexMetrics.SetOrientation(true); // Pointy-top
 
-        // 生成随机节点
-        AviationSystem.Instance.GenerateRandomNodes(nodeCount, gridRadius);
-        
+        // 生成随机节点（使用新版 Poisson Disk 采样）
+        AviationSystem.Instance.GenerateRandomNodes(nodeCount, minDistance);
+
         Debug.Log($"[{Name}] 随机节点生成完成，当前节点数: {AviationSystem.Instance.aviationNodeDict.Count}");
     }
+
 
     protected override void OnUpdate(GameProcedureContext ctx)
     {

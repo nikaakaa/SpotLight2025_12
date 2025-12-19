@@ -24,6 +24,17 @@ public class AviationSystem
     public Dictionary<HexCoord, AviationNode> nodeByCoord = new Dictionary<HexCoord, AviationNode>();
 
     /// <summary>
+    /// 已被航线占用的路径格子（不含节点端点）
+    /// 用于寻路时避开已有航线
+    /// </summary>
+    public HashSet<HexCoord> occupiedPathCoords = new HashSet<HexCoord>();
+
+    /// <summary>
+    /// 所有节点所在的坐标（允许航线经过）
+    /// </summary>
+    public HashSet<HexCoord> nodeCoords = new HashSet<HexCoord>();
+
+    /// <summary>
     /// 城市节点预制体地址（Addressables）
     /// </summary>
     public const string CITY_NODE_PREFAB = "CityNode";
@@ -41,6 +52,8 @@ public class AviationSystem
         aviationNodeDict.Clear();
         aviationEdgeDict.Clear();
         nodeByCoord.Clear();
+        occupiedPathCoords.Clear();
+        nodeCoords.Clear();
     }
 
     #region 节点管理
@@ -62,6 +75,7 @@ public class AviationSystem
 
         aviationNodeDict.Add(nodeIndex, node);
         nodeByCoord.Add(coord, node);
+        nodeCoords.Add(coord); // 记录节点坐标（允许航线经过）
         nodeIndex++;
 
         return node;
@@ -110,9 +124,25 @@ public class AviationSystem
     #region 边管理
 
     /// <summary>
-    /// 添加边（仅数据）
+    /// 边添加完成事件（用于扣除玩家金钱等）
+    /// 参数：edge, pathLength (用于计算建造成本)
     /// </summary>
-    public AviationEdge AddEdge(AviationNode from, AviationNode to)
+    public event System.Action<AviationEdge, int> OnEdgeAdded;
+
+    /// <summary>
+    /// 边移除完成事件（用于返还玩家金钱等）
+    /// 参数：edge, pathLength (用于计算拆除返还)
+    /// </summary>
+    public event System.Action<AviationEdge, int> OnEdgeRemoved;
+
+    /// <summary>
+    /// 添加边（仅数据，不创建视图）
+    /// </summary>
+    /// <param name="from">起点节点</param>
+    /// <param name="to">终点节点</param>
+    /// <param name="triggerEvent">是否触发事件（默认true）</param>
+    /// <returns>创建的边，失败返回null</returns>
+    public AviationEdge AddEdge(AviationNode from, AviationNode to, bool triggerEvent = true)
     {
         if (from == null || to == null)
         {
@@ -120,20 +150,46 @@ public class AviationSystem
             return null;
         }
 
-        // 检查是否已存在该边
-        foreach (var edge in aviationEdgeDict.Values)
+        if (from == to)
         {
-            if ((edge.fromNode == from && edge.toNode == to) ||
-                (edge.fromNode == to && edge.toNode == from))
+            Debug.LogWarning("[AviationSystem] 无法创建边：起点和终点相同");
+            return null;
+        }
+
+        // 检查是否已存在该边
+        foreach (var existingEdge in aviationEdgeDict.Values)
+        {
+            if ((existingEdge.fromNode == from && existingEdge.toNode == to) ||
+                (existingEdge.fromNode == to && existingEdge.toNode == from))
             {
                 Debug.LogWarning("[AviationSystem] 该边已存在");
-                return edge;
+                return existingEdge;
             }
         }
 
+        // 创建边（构造函数中会自动计算路径并注册占用）
         AviationEdge newEdge = new AviationEdge(edgeIndex, from, to);
+
+        // 检查路径是否有效
+        if (newEdge.pathCoords == null || newEdge.pathCoords.Count == 0)
+        {
+            Debug.LogWarning("[AviationSystem] 无法创建边：找不到有效路径");
+            // 清理已注册到节点的边引用
+            from.RemoveEdge(newEdge);
+            to.RemoveEdge(newEdge);
+            return null;
+        }
+
         aviationEdgeDict.Add(edgeIndex, newEdge);
         edgeIndex++;
+
+        Debug.Log($"[AviationSystem] 添加边成功: index={newEdge.edgeIndex}, pathLength={newEdge.pathCoords.Count}");
+
+        // 触发事件（用于扣除金钱等）
+        if (triggerEvent)
+        {
+            OnEdgeAdded?.Invoke(newEdge, newEdge.pathCoords.Count);
+        }
 
         return newEdge;
     }
@@ -141,25 +197,21 @@ public class AviationSystem
     /// <summary>
     /// 添加边并创建视图
     /// </summary>
-    public void AddEdgeWithView(AviationNode from, AviationNode to, Transform parent = null)
+    /// <param name="from">起点节点</param>
+    /// <param name="to">终点节点</param>
+    /// <param name="parent">视图父物体</param>
+    /// <param name="triggerEvent">是否触发事件（默认true）</param>
+    /// <returns>创建的边，失败返回null</returns>
+    public AviationEdge AddEdgeWithView(AviationNode from, AviationNode to, Transform parent = null, bool triggerEvent = true)
     {
         Debug.Log($"[AviationSystem] AddEdgeWithView: from={from?.hexCoord}, to={to?.hexCoord}");
 
-        AviationEdge edge = AddEdge(from, to);
+        AviationEdge edge = AddEdge(from, to, triggerEvent);
         if (edge == null)
         {
-            Debug.LogWarning("[AviationSystem] AddEdge 返回 null，可能参数无效");
-            return;
+            Debug.LogWarning("[AviationSystem] AddEdge 返回 null，可能参数无效或路径不存在");
+            return null;
         }
-
-        // 重新计算路径（如果之前失败过，或者地图发生了变化）
-        if (edge.pathCoords == null || edge.pathCoords.Count == 0)
-        {
-            Debug.Log("[AviationSystem] 现有边的路径为空，尝试重新计算...");
-            edge.CalculatePath();
-        }
-
-        Debug.Log($"[AviationSystem] 创建边成功: index={edge.edgeIndex}, pathCount={edge.pathCoords?.Count ?? 0}");
 
         // 防止重复创建视图
         string viewName = $"Edge_{edge.edgeIndex}_{from.nodeIndex}_to_{to.nodeIndex}";
@@ -171,17 +223,17 @@ public class AviationSystem
             if (existing != null)
             {
                 Debug.Log($"[AviationSystem] 视图 {viewName} 已存在，跳过创建");
-                return;
+                return edge;
             }
         }
         else
         {
-            // 全局查找（性能稍差，但点击频率低可接受）
+            // 全局查找
             GameObject existingGo = GameObject.Find(viewName);
             if (existingGo != null)
             {
                 Debug.Log($"[AviationSystem] 视图 {viewName} 已存在，跳过创建");
-                return;
+                return edge;
             }
         }
 
@@ -194,6 +246,109 @@ public class AviationSystem
         lineView.Initialize(edge);
 
         Debug.Log($"[AviationSystem] EdgeLineView 创建完成");
+
+        return edge;
+    }
+
+    /// <summary>
+    /// 移除边（仅数据，完整清理所有状态）
+    /// </summary>
+    /// <param name="edge">要移除的边</param>
+    /// <param name="triggerEvent">是否触发事件（默认true）</param>
+    /// <returns>是否移除成功</returns>
+    public bool RemoveEdge(AviationEdge edge, bool triggerEvent = true)
+    {
+        if (edge == null) return false;
+
+        // 先保存路径长度（用于事件回调）
+        int pathLength = edge.pathCoords?.Count ?? 0;
+
+        // 1. 清除路径占用（从 occupiedPathCoords 中移除）
+        edge.ClearPathOccupation();
+
+        // 2. 从节点的边列表中移除
+        edge.fromNode?.RemoveEdge(edge);
+        edge.toNode?.RemoveEdge(edge);
+
+        // 3. 清空边的内部数据
+        edge.pathCoords?.Clear();
+
+        // 4. 从系统字典中移除
+        bool removed = aviationEdgeDict.Remove(edge.edgeIndex);
+
+        if (removed)
+        {
+            Debug.Log($"[AviationSystem] 移除边成功: index={edge.edgeIndex}");
+
+            // 触发事件（用于返还金钱等）
+            if (triggerEvent)
+            {
+                OnEdgeRemoved?.Invoke(edge, pathLength);
+            }
+        }
+
+        return removed;
+    }
+
+    /// <summary>
+    /// 移除边并销毁视图
+    /// </summary>
+    /// <param name="edge">要移除的边</param>
+    /// <param name="edgeView">边的视图组件（可选，会自动查找）</param>
+    /// <param name="triggerEvent">是否触发事件（默认true）</param>
+    /// <returns>是否移除成功</returns>
+    public bool RemoveEdgeWithView(AviationEdge edge, EdgeLineView edgeView = null, bool triggerEvent = true)
+    {
+        if (edge == null) return false;
+
+        // 如果没有传入视图，尝试查找
+        if (edgeView == null)
+        {
+            string viewName = $"Edge_{edge.edgeIndex}_{edge.fromNode?.nodeIndex}_to_{edge.toNode?.nodeIndex}";
+            GameObject viewObj = GameObject.Find(viewName);
+            if (viewObj != null)
+            {
+                edgeView = viewObj.GetComponent<EdgeLineView>();
+            }
+        }
+
+        // 移除数据
+        bool removed = RemoveEdge(edge, triggerEvent);
+
+        // 销毁视图
+        if (edgeView != null)
+        {
+            Object.Destroy(edgeView.gameObject);
+            Debug.Log($"[AviationSystem] 销毁边视图");
+        }
+
+        return removed;
+    }
+
+    /// <summary>
+    /// 根据边索引移除边
+    /// </summary>
+    public bool RemoveEdgeByIndex(int edgeIndex, bool triggerEvent = true)
+    {
+        if (aviationEdgeDict.TryGetValue(edgeIndex, out var edge))
+        {
+            return RemoveEdgeWithView(edge, null, triggerEvent);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 移除所有边
+    /// </summary>
+    /// <param name="triggerEvent">是否为每条边触发事件</param>
+    public void RemoveAllEdges(bool triggerEvent = false)
+    {
+        var edgesToRemove = new List<AviationEdge>(aviationEdgeDict.Values);
+        foreach (var edge in edgesToRemove)
+        {
+            RemoveEdgeWithView(edge, null, triggerEvent);
+        }
+        Debug.Log($"[AviationSystem] 移除了所有 {edgesToRemove.Count} 条边");
     }
 
     #endregion
@@ -201,12 +356,60 @@ public class AviationSystem
     #region 随机生成
 
     /// <summary>
-    /// 随机生成节点
+    /// 随机生成节点（集成地形系统和 Poisson Disk 均匀分布）
     /// </summary>
     /// <param name="count">生成数量</param>
-    /// <param name="radius">生成范围（六边形半径）</param>
+    /// <param name="minDistance">城市最小间隔（六边形格子数）</param>
     /// <param name="parent">父物体</param>
-    public void GenerateRandomNodes(int count, int radius, Transform parent = null)
+    public void GenerateRandomNodes(int count, int minDistance = 3, Transform parent = null)
+    {
+        // 1. 获取所有可放置城市的坐标
+        List<HexCoord> candidates;
+
+        if (TerrainSystem.Instance != null && TerrainSystem.Instance.terrainGrid.Count > 0)
+        {
+            // 使用地形系统的可放置城市坐标
+            candidates = TerrainSystem.Instance.GetAllCityPlaceableCoords();
+            Debug.Log($"[AviationSystem] 从地形系统获取 {candidates.Count} 个可放置城市的坐标");
+        }
+        else
+        {
+            // 后备：使用默认范围（适用于还没有地形系统的情况）
+            candidates = HexCoord.Zero.GetHexesInRange(15);
+            Debug.LogWarning("[AviationSystem] 地形系统未初始化，使用默认范围生成城市");
+        }
+
+        // 过滤掉已有节点的位置
+        candidates.RemoveAll(coord => nodeByCoord.ContainsKey(coord));
+
+        if (candidates.Count == 0)
+        {
+            Debug.LogWarning("[AviationSystem] 没有可用的城市放置位置");
+            return;
+        }
+
+        // 2. 使用 Poisson Disk 采样均匀分布城市
+        var selectedCoords = PoissonDiskSampler.Sample(candidates, count, minDistance);
+
+        // 3. 获取所有可用的节点配置 ID
+        var nodeConfigs = TableLoader.Tables.TbNode.DataList;
+
+        // 4. 在选中的坐标上创建城市
+        foreach (var coord in selectedCoords)
+        {
+            // 随机选择一个节点配置
+            int configId = nodeConfigs[Random.Range(0, nodeConfigs.Count)].Id;
+            AddNodeWithView(configId, coord, parent);
+        }
+
+        Debug.Log($"[AviationSystem] 生成了 {selectedCoords.Count} 个城市节点（使用 Poisson Disk 采样，最小间距={minDistance}）");
+    }
+
+    /// <summary>
+    /// 旧版随机生成节点（不使用地形系统，保留兼容性）
+    /// </summary>
+    [System.Obsolete("请使用新版 GenerateRandomNodes")]
+    public void GenerateRandomNodesLegacy(int count, int radius, Transform parent = null)
     {
         var allHexes = HexCoord.Zero.GetHexesInRange(radius);
 
@@ -238,7 +441,7 @@ public class AviationSystem
             generated++;
         }
 
-        Debug.Log($"[AviationSystem] 生成了 {generated} 个随机节点");
+        Debug.Log($"[AviationSystem] 生成了 {generated} 个随机节点（旧版方法）");
     }
 
     #endregion
