@@ -27,14 +27,14 @@ public static class PlayerData
     /// 航线成本基础常数 - 整体成本缩放
     /// 增大 = 所有航线更贵，减小 = 所有航线更便宜
     /// </summary>
-    public const float EDGE_COST_BASE = 60f;
+    public const float EDGE_COST_BASE = 80f;
 
     /// <summary>
     /// 节点数偏移量 - 控制前期曲线
     /// 增大 = 前期更轻松（log曲线起点更平缓）
     /// 减小 = 前期更困难（快速进入陡峭区间）
     /// </summary>
-    public const float EDGE_COST_NODE_OFFSET = 3f;
+    public const float EDGE_COST_NODE_OFFSET = 4f;
 
     /// <summary>
     /// 对数指数 - 控制增长速度
@@ -42,7 +42,7 @@ public static class PlayerData
     /// &gt;1.0 = 后期成本增长更快
     /// &lt;1.0 = 后期成本增长更慢
     /// </summary>
-    public const float EDGE_COST_LOG_POWER = 2.0f;
+    public const float EDGE_COST_LOG_POWER = 1.5f;
 
     /// <summary>
     /// 距离影响系数 - 控制距离对成本的影响程度
@@ -55,12 +55,12 @@ public static class PlayerData
     /// <summary>
     /// 最小成本下限 - 无论公式如何，成本不低于此值
     /// </summary>
-    public const float EDGE_COST_MIN = 5f;
+    public const float EDGE_COST_MIN = 20f;
 
     /// <summary>
     /// 最大成本上限 - 无论公式如何，成本不高于此值
     /// </summary>
-    public const float EDGE_COST_MAX = 500f;
+    public const float EDGE_COST_MAX = 300f;
 
     /// <summary>
     /// 航线成本常数（旧公式，已废弃）
@@ -110,17 +110,17 @@ public static class PlayerData
     /// <summary>
     /// 环形结构基础倍率
     /// </summary>
-    public const float RING_BASE_MULTIPLIER = 1.8f;
+    public const float RING_BASE_MULTIPLIER = 2f;
 
     /// <summary>
     /// 单线结构基础倍率
     /// </summary>
-    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.05f;
+    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.1f;
 
     /// <summary>
     /// 放射结构基础倍率（枢纽）
     /// </summary>
-    public const float RADIAL_BASE_MULTIPLIER = 1.2f;
+    public const float RADIAL_BASE_MULTIPLIER = 1.4f;
 
     // ========== 枢纽规则配置 ==========
 

@@ -1,5 +1,7 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 /// <summary>
 /// 结算状态 - 处理回合结算的计算、动画和数据更新逻辑
@@ -105,6 +107,9 @@ public class SettlementState : LeafState<GameProcedureContext>
             return;
         }
 
+        // 播放结算音效
+        await PlaySettlementSoundAsync();
+
         // 检查动画器是否存在
         if (SettlementAnimator.Instance != null)
         {
@@ -139,6 +144,76 @@ public class SettlementState : LeafState<GameProcedureContext>
         Debug.Log($"[{Name}] 结算完成，进入下一状态");
         settlementComplete = true;
         localContext?.Next();
+    }
+
+    /// <summary>
+    /// 播放结算音效（异步版本）
+    /// </summary>
+    private async UniTask PlaySettlementSoundAsync()
+    {
+        try
+        {
+            Debug.Log($"[{Name}] 开始加载音效...");
+
+            // 方式1：使用 Resources.Load（需要音频在 Resources 文件夹中）
+            AudioClip clip = Resources.Load<AudioClip>("Audio/Retro9");
+            
+            if (clip != null)
+            {
+                PlayAudioClip(clip);
+                Debug.Log($"[{Name}] 使用 Resources.Load 成功加载音效");
+                return;
+            }
+
+            Debug.Log($"[{Name}] Resources.Load 失败，尝试 Addressables...");
+
+            // 方式2：使用 Addressables（备选方案）
+            var handle = Addressables.LoadAssetAsync<AudioClip>("Assets/Audio/Retro9.mp3");
+            
+            // 等待加载完成
+            await handle.Task;
+
+            if (handle.Status == AsyncOperationStatus.Succeeded && handle.Result != null)
+            {
+                PlayAudioClip(handle.Result);
+                Debug.Log($"[{Name}] 使用 Addressables 成功加载音效");
+            }
+            else
+            {
+                Debug.LogWarning($"[{Name}] Addressables 加载失败");
+            }
+
+            Addressables.Release(handle);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"[{Name}] 播放音效异常: {ex.Message}\n{ex.StackTrace}");
+        }
+    }
+
+    /// <summary>
+    /// 播放音频片段
+    /// </summary>
+    private void PlayAudioClip(AudioClip clip)
+    {
+        if (clip == null)
+        {
+            Debug.LogWarning($"[{Name}] AudioClip 为空");
+            return;
+        }
+
+        // 创建临时 GameObject 播放音效
+        GameObject tempAudioGO = new GameObject("SettlementAudio");
+        AudioSource audioSource = tempAudioGO.AddComponent<AudioSource>();
+        
+        audioSource.clip = clip;
+        audioSource.volume = 1.0f;
+        audioSource.Play();
+
+        Debug.Log($"[{Name}] 播放结算音效: {clip.name} (长度: {clip.length}s)");
+
+        // 播放完毕后销毁
+        Object.Destroy(tempAudioGO, clip.length + 0.1f);
     }
 
     protected override void OnUpdate(GameProcedureContext ctx)
