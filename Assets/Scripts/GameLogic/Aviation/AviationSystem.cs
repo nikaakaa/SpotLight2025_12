@@ -470,4 +470,61 @@ public class AviationSystem
     }
 
     #endregion
+
+    #region 视图映射（用于动画系统）
+
+    /// <summary>
+    /// 获取指定索引的节点视图
+    /// </summary>
+    public CityNode GetCityNodeByIndex(int nodeIndex)
+    {
+        if (aviationNodeDict.TryGetValue(nodeIndex, out var node))
+        {
+            return node.cityNodeView;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 获取指定索引的边视图
+    /// </summary>
+    public EdgeLineView GetEdgeViewByIndex(int edgeIndex)
+    {
+        if (aviationEdgeDict.TryGetValue(edgeIndex, out var edge))
+        {
+            return edge.edgeLineView;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 获取所有节点视图（用于动画批量操作）
+    /// </summary>
+    public IEnumerable<CityNode> GetAllCityNodes()
+    {
+        foreach (var kvp in aviationNodeDict)
+        {
+            if (kvp.Value.cityNodeView != null)
+            {
+                yield return kvp.Value.cityNodeView;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 获取所有边视图（用于动画批量操作）
+    /// </summary>
+    public IEnumerable<EdgeLineView> GetAllEdgeViews()
+    {
+        foreach (var kvp in aviationEdgeDict)
+        {
+            if (kvp.Value.edgeLineView != null)
+            {
+                yield return kvp.Value.edgeLineView;
+            }
+        }
+    }
+
+    #endregion
 }
+

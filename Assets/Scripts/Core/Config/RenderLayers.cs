@@ -15,7 +15,7 @@ public static class RenderLayers
     public const int AIRLINE = 50;
 
     /// <summary>
-    /// 城市节点 - 最上层
+    /// 城市节点 - 上层
     /// </summary>
     public const int CITY = 100;
 
@@ -23,4 +23,10 @@ public static class RenderLayers
     /// UI 元素
     /// </summary>
     public const int UI = 1000;
+
+    /// <summary>
+    /// 浮动数字 - 最上层（结算动画用）
+    /// </summary>
+    public const int FLOATING_NUMBER = 2000;
 }
+

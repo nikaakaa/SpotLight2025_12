@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 
 /// <summary>
@@ -28,6 +29,11 @@ public class CityNode : MonoBehaviour
     private bool isHovered = false;
     private Camera mainCamera;
 
+    // 结算动画用
+    private Vector3 originalScale;
+    private Color originalColor;
+    private bool isDimmed = false;
+
     void Awake()
     {
         if (spriteRenderer == null)
@@ -36,11 +42,14 @@ public class CityNode : MonoBehaviour
         // 设置渲染层级 - 城市节点在最上层
         if (spriteRenderer != null)
             spriteRenderer.sortingOrder = RenderLayers.CITY;
+
+        originalScale = transform.localScale;
     }
 
     void Start()
     {
         mainCamera = Camera.main;
+        originalColor = normalColor;
 
         // 安全检查
         if (aviationNode == null)
@@ -88,6 +97,8 @@ public class CityNode : MonoBehaviour
     public void Initialize(AviationNode node)
     {
         aviationNode = node;
+        // 设置反向引用（用于动画系统）
+        node.cityNodeView = this;
         UpdateVisual();
     }
 
@@ -105,7 +116,7 @@ public class CityNode : MonoBehaviour
 
     private void UpdateVisual()
     {
-        if (spriteRenderer != null)
+        if (spriteRenderer != null && !isDimmed)
         {
             if (isSelected)
                 spriteRenderer.color = selectedColor;
@@ -115,5 +126,84 @@ public class CityNode : MonoBehaviour
                 spriteRenderer.color = normalColor;
         }
     }
-}
 
+    #region 结算动画方法
+
+    /// <summary>
+    /// 设置变暗状态（结算准备阶段）
+    /// </summary>
+    public void SetDim(bool dim, float duration = 0f)
+    {
+        isDimmed = dim;
+        Color targetColor = dim ? SettlementAnimConfig.DimColor : originalColor;
+        float targetScale = dim ? 0.95f : 1f;
+
+        if (spriteRenderer == null) return;
+
+        if (duration > 0)
+        {
+            spriteRenderer.DOColor(targetColor, duration);
+            transform.DOScale(originalScale * targetScale, duration);
+        }
+        else
+        {
+            spriteRenderer.color = targetColor;
+            transform.localScale = originalScale * targetScale;
+        }
+    }
+
+    /// <summary>
+    /// 高亮节点（结算时亮起）
+    /// </summary>
+    public Tween Highlight(float duration = 0.1f)
+    {
+        if (spriteRenderer == null) return null;
+
+        var seq = DOTween.Sequence();
+        seq.Append(spriteRenderer.DOColor(SettlementAnimConfig.HighlightColor, duration));
+        seq.Join(transform.DOScale(originalScale * SettlementAnimConfig.NodeHighlightScale, duration));
+        return seq;
+    }
+
+    /// <summary>
+    /// 闪烁效果
+    /// </summary>
+    public Tween Flash(Color color, float duration = 0.2f)
+    {
+        if (spriteRenderer == null) return null;
+
+        return spriteRenderer.DOColor(color, duration / 2f)
+            .SetLoops(2, LoopType.Yoyo);
+    }
+
+    /// <summary>
+    /// 设置动画缩放
+    /// </summary>
+    public Tween SetAnimScale(float scale, float duration = 0.1f)
+    {
+        return transform.DOScale(originalScale * scale, duration);
+    }
+
+    /// <summary>
+    /// 恢复正常状态
+    /// </summary>
+    public void Restore(float duration = 0.2f)
+    {
+        isDimmed = false;
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.DOColor(normalColor, duration);
+        }
+        transform.DOScale(originalScale, duration);
+    }
+
+    /// <summary>
+    /// 获取头顶浮动数字位置
+    /// </summary>
+    public Vector3 GetFloatingNumberPosition()
+    {
+        return transform.position + SettlementAnimConfig.FloatingNumberOffset;
+    }
+
+    #endregion
+}

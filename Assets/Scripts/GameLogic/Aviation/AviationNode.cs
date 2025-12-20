@@ -15,6 +15,9 @@ public class AviationNode
     // 该节点连接的所有边
     public List<AviationEdge> edges = new List<AviationEdge>();
 
+    // 视图引用（由 CityNode 设置，用于动画）
+    public CityNode cityNodeView;
+
     public AviationNode(int nodeId, int index)
     {
         nodeIndex = index;

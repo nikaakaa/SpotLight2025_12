@@ -1,12 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class GameLogicUI : MonoBehaviour
 {
+    public static GameLogicUI Instance { get; private set; }
     public ScrollRect buffListScrollView;
     public TextMeshProUGUI moneyText;
     public TextMeshProUGUI currentNodeInformation;
@@ -30,6 +33,15 @@ public class GameLogicUI : MonoBehaviour
 
     private readonly List<TextMeshProUGUI> buffItemTexts = new();
     private readonly StringBuilder sb = new();
+
+    // 结算动画控制
+    private bool isSettlementMode = false;
+    private Dictionary<int, TextMeshProUGUI> buffIdToText = new();
+
+    void Awake()
+    {
+        Instance = this;
+    }
 
     private void OnEnable()
     {
@@ -55,6 +67,9 @@ public class GameLogicUI : MonoBehaviour
 
     private void Update()
     {
+        // 结算动画期间暂停自动刷新
+        if (isSettlementMode) return;
+
         // 实时刷新 UI 数据
         RefreshMoney(PlayerRunTimeInfo.Current?.Assets ?? 0);
         RefreshStatistics();
@@ -405,4 +420,82 @@ public class GameLogicUI : MonoBehaviour
             currentNode = null;
         }
     }
+
+    #region 结算动画方法
+
+    /// <summary>
+    /// 设置结算动画模式（暂停自动刷新）
+    /// </summary>
+    public void SetSettlementMode(bool active)
+    {
+        isSettlementMode = active;
+    }
+
+    /// <summary>
+    /// 金额数字滚动动画
+    /// </summary>
+    public async UniTask AnimateMoneyTo(long target, float duration = 1f)
+    {
+        if (moneyText == null) return;
+
+        long current = PlayerRunTimeInfo.Current?.Assets ?? 0;
+        var tween = DOTween.To(() => current, x =>
+        {
+            current = x;
+            moneyText.text = $"${x:N0}";
+        }, target, duration).SetEase(Ease.OutQuad);
+
+        await UniTask.WaitUntil(() => !tween.IsActive() || tween.IsComplete());
+    }
+
+    /// <summary>
+    /// Buff 项跳动效果（小丑牌风格）
+    /// </summary>
+    public void PunchBuffItem(int buffId)
+    {
+        // 尝试从缓存获取
+        if (!buffIdToText.TryGetValue(buffId, out var text) || text == null)
+        {
+            // 遍历查找
+            foreach (var item in buffItemTexts)
+            {
+                if (item != null && item.text.Contains($"#{buffId}"))
+                {
+                    text = item;
+                    buffIdToText[buffId] = text;
+                    break;
+                }
+            }
+        }
+
+        if (text == null) return;
+
+        // 跳动动画
+        DOTween.Sequence()
+            .Append(text.transform.DOScale(SettlementAnimConfig.BuffPunchScale, 0.1f).SetEase(Ease.OutBack))
+            .Append(text.transform.DOScale(1f, 0.15f).SetEase(Ease.InOutSine))
+            .Join(text.DOColor(SettlementAnimConfig.BuffPunchColor, 0.1f))
+            .Append(text.DOColor(Color.white, 0.2f));
+    }
+
+    /// <summary>
+    /// 高亮指定 Buff 项
+    /// </summary>
+    public void HighlightBuffItem(int buffId, Color color)
+    {
+        if (!buffIdToText.TryGetValue(buffId, out var text) || text == null) return;
+        text.color = color;
+    }
+
+    /// <summary>
+    /// 获取金额 UI 的世界坐标（用于数字飞向目标）
+    /// </summary>
+    public Vector3 GetMoneyWorldPosition()
+    {
+        if (moneyText == null) return Vector3.zero;
+        return moneyText.transform.position;
+    }
+
+    #endregion
 }
+

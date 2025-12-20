@@ -268,6 +268,25 @@ public static class BuffDisplayConfig
     };
 
     /// <summary>
+    /// 玩家升级 Buff 价格（按 EPlayerBuff 枚举 ID 索引）
+    /// </summary>
+    public static readonly Dictionary<int, int> PlayerBuffPrices = new()
+    {
+        { 101, 50 },   // 小型机场设施升级
+        { 102, 80 },   // 通用型机场设施升级
+        { 103, 120 },  // 中型机场设施升级
+        { 104, 180 },  // 大型机场设施升级
+        { 105, 250 },  // 巨型机场设施升级
+        { 106, 150 },  // 环行航班密度提升
+        { 107, 100 },  // 直达航班密度提升
+        { 108, 100 },  // 枢纽航班密度提升
+        { 109, 80 },   // 偏远航线补贴
+        { 110, 200 },  // 去中心化联盟
+        { 111, 120 },  // 短途航线爆发
+        { 112, 150 },  // 孤立繁荣政策
+    };
+
+    /// <summary>
     /// 获取 Buff 显示文本
     /// </summary>
     /// <param name="buffId">Buff ID</param>
@@ -281,6 +300,19 @@ public static class BuffDisplayConfig
             return playerText;
 
         return null;
+    }
+
+    /// <summary>
+    /// 获取 Buff 价格
+    /// </summary>
+    /// <param name="buffId">Buff ID</param>
+    /// <returns>价格，若不存在则返回 0</returns>
+    public static int GetBuffPrice(int buffId)
+    {
+        if (PlayerBuffPrices.TryGetValue(buffId, out var price))
+            return price;
+
+        return 0;
     }
 
     /// <summary>

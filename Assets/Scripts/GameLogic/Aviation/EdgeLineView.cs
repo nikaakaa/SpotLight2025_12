@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 
 /// <summary>
@@ -24,6 +25,10 @@ public class EdgeLineView : MonoBehaviour
     private bool isHovered = false;
     private List<GameObject> colliderObjects = new List<GameObject>();
 
+    // 结算动画用
+    private Color originalColor;
+    private bool isDimmed = false;
+
     void Awake()
     {
         if (lineRenderer == null)
@@ -31,6 +36,8 @@ public class EdgeLineView : MonoBehaviour
 
         if (lineRenderer == null)
             lineRenderer = gameObject.AddComponent<LineRenderer>();
+
+        originalColor = lineColor;
     }
 
     void OnDestroy()
@@ -45,6 +52,9 @@ public class EdgeLineView : MonoBehaviour
     public void Initialize(AviationEdge edge)
     {
         aviationEdge = edge;
+        originalColor = lineColor;
+        // 设置反向引用（用于动画系统）
+        edge.edgeLineView = this;
         SetupLineRenderer();
         UpdateView();
 
@@ -172,7 +182,7 @@ public class EdgeLineView : MonoBehaviour
         if (isHovered == hovered) return;
         isHovered = hovered;
 
-        if (lineRenderer != null)
+        if (lineRenderer != null && !isDimmed)
         {
             Color targetColor = hovered ? hoverColor : lineColor;
             lineRenderer.startColor = targetColor;
@@ -191,7 +201,7 @@ public class EdgeLineView : MonoBehaviour
     public void SetColor(Color color)
     {
         lineColor = color;
-        if (lineRenderer != null && !isHovered)
+        if (lineRenderer != null && !isHovered && !isDimmed)
         {
             lineRenderer.startColor = color;
             lineRenderer.endColor = color;
@@ -210,6 +220,79 @@ public class EdgeLineView : MonoBehaviour
             lineRenderer.endWidth = width;
         }
     }
+
+    #region 结算动画方法
+
+    /// <summary>
+    /// 设置变暗状态（结算准备阶段）
+    /// </summary>
+    public void SetDim(bool dim, float duration = 0f)
+    {
+        isDimmed = dim;
+        Color targetColor = dim ? SettlementAnimConfig.DimColor : originalColor;
+
+        if (lineRenderer == null) return;
+
+        if (duration > 0)
+        {
+            DOTween.To(() => lineRenderer.startColor,
+                       x => { lineRenderer.startColor = x; lineRenderer.endColor = x; },
+                       targetColor, duration);
+        }
+        else
+        {
+            lineRenderer.startColor = targetColor;
+            lineRenderer.endColor = targetColor;
+        }
+    }
+
+    /// <summary>
+    /// 设置着色（高亮/成本显示）
+    /// </summary>
+    public void SetTint(Color color, float duration = 0f)
+    {
+        if (lineRenderer == null) return;
+
+        if (duration > 0)
+        {
+            DOTween.To(() => lineRenderer.startColor,
+                       x => { lineRenderer.startColor = x; lineRenderer.endColor = x; },
+                       color, duration);
+        }
+        else
+        {
+            lineRenderer.startColor = color;
+            lineRenderer.endColor = color;
+        }
+    }
+
+    /// <summary>
+    /// 闪烁效果
+    /// </summary>
+    public Tween Flash(Color color, float duration = 0.2f)
+    {
+        if (lineRenderer == null) return null;
+
+        Color current = lineRenderer.startColor;
+        return DOTween.Sequence()
+            .Append(DOTween.To(() => lineRenderer.startColor,
+                               x => { lineRenderer.startColor = x; lineRenderer.endColor = x; },
+                               color, duration / 2f))
+            .Append(DOTween.To(() => lineRenderer.startColor,
+                               x => { lineRenderer.startColor = x; lineRenderer.endColor = x; },
+                               current, duration / 2f));
+    }
+
+    /// <summary>
+    /// 恢复正常状态
+    /// </summary>
+    public void Restore(float duration = 0.2f)
+    {
+        isDimmed = false;
+        SetTint(originalColor, duration);
+    }
+
+    #endregion
 }
 
 /// <summary>
@@ -219,5 +302,6 @@ public class EdgeColliderReference : MonoBehaviour
 {
     public EdgeLineView edgeLineView;
 }
+
 
 

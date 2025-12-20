@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -6,8 +7,9 @@ using UnityEngine;
 /// 结算流程：
 /// 1. 结构识别 - 检测所有航线结构（环、单线、放射）
 /// 2. 结算计算 - 计算收益和成本
-/// 3. 应用结算 - 更新玩家资产
-/// 4. 破产检测 - 检查是否破产
+/// 3. 播放动画 - 小丑牌风格的结算演出
+/// 4. 应用结算 - 更新玩家资产
+/// 5. 破产检测 - 检查是否破产
 /// </summary>
 public class SettlementState : LeafState<GameProcedureContext>
 {
@@ -15,10 +17,12 @@ public class SettlementState : LeafState<GameProcedureContext>
     private AllStructures currentStructures;
     private SettlementResult currentResult;
     private bool settlementComplete;
-    private float settlementTimer;
+    private bool animationStarted;
 
-    // 结算动画时长（秒）- 简化版先用固定时长
-    private const float SETTLEMENT_DISPLAY_TIME = 1.5f;
+    // 缓存引用
+    private AviationSystem aviationSystem;
+    private PlayerRunTimeInfo playerInfo;
+    private GameProcedureContext currentContext;
 
     public SettlementState()
     {
@@ -31,7 +35,8 @@ public class SettlementState : LeafState<GameProcedureContext>
         Debug.Log($"[{Name}] Enter - 开始回合结算");
 
         settlementComplete = false;
-        settlementTimer = 0f;
+        animationStarted = false;
+        currentContext = ctx;
 
         // 获取游戏逻辑状态
         var gameLogicState = GameProcedure.Instance?.GameLogicState;
@@ -42,8 +47,8 @@ public class SettlementState : LeafState<GameProcedureContext>
             return;
         }
 
-        var aviationSystem = gameLogicState.aviationSystem;
-        var playerInfo = gameLogicState.playerRunTimeInfo;
+        aviationSystem = gameLogicState.aviationSystem;
+        playerInfo = gameLogicState.playerRunTimeInfo;
 
         if (aviationSystem == null || playerInfo == null)
         {
@@ -70,43 +75,60 @@ public class SettlementState : LeafState<GameProcedureContext>
             buffHandler
         );
 
-        // Step 4: 应用结算结果
-        Debug.Log($"[{Name}] Step 3: 应用结算结果...");
-        playerInfo.ApplySettlement(currentResult);
-
         // 打印结算摘要
         PrintSettlementSummary();
 
-        // Step 5: 检测破产
+        // Step 4: 启动结算动画
+        Debug.Log($"[{Name}] Step 3: 播放结算动画...");
+        PlaySettlementAnimationAsync().Forget();
+    }
+
+    /// <summary>
+    /// 异步播放结算动画
+    /// </summary>
+    private async UniTaskVoid PlaySettlementAnimationAsync()
+    {
+        animationStarted = true;
+
+        // 检查动画器是否存在
+        if (SettlementAnimator.Instance != null)
+        {
+            // 播放完整动画
+            await SettlementAnimator.Instance.PlayAsync(
+                currentStructures,
+                currentResult,
+                aviationSystem
+            );
+        }
+        else
+        {
+            Debug.LogWarning($"[{Name}] SettlementAnimator 不存在，跳过动画");
+            // 没有动画器时直接等待一小段时间
+            await UniTask.Delay(500);
+        }
+
+        // 动画完成后应用结算结果
+        Debug.Log($"[{Name}] Step 4: 应用结算结果...");
+        playerInfo.ApplySettlement(currentResult);
+
+        // 破产检测
         if (playerInfo.IsBankrupt)
         {
             Debug.LogWarning($"[{Name}] 玩家破产！资产={playerInfo.Assets}");
-            ctx.Send(GameEvent.Bankruptcy);
+            currentContext.Send(GameEvent.Bankruptcy);
             settlementComplete = true;
             return;
         }
 
-        Debug.Log($"[{Name}] 结算完成，等待显示...");
+        // 进入下一状态
+        Debug.Log($"[{Name}] 结算完成，进入下一状态");
+        settlementComplete = true;
+        currentContext.Next();
     }
 
     protected override void OnUpdate(GameProcedureContext ctx)
     {
-        if (settlementComplete) return;
-
-        // 简化版：等待固定时间后自动进入下一状态
-        settlementTimer += Time.deltaTime;
-
-        if (settlementTimer >= SETTLEMENT_DISPLAY_TIME)
-        {
-            settlementComplete = true;
-            Debug.Log($"[{Name}] 结算显示完成，进入下一状态");
-            ctx.Next();
-        }
-
-        // TODO: 未来可以在这里添加结算动画逻辑
-        // - 结构高亮动画
-        // - 数字滚动动画
-        // - 资产变化动画
+        // 动画由 UniTask 控制，不需要 Update 逻辑
     }
 
     protected override void OnExit(GameProcedureContext ctx)
@@ -116,6 +138,9 @@ public class SettlementState : LeafState<GameProcedureContext>
         // 清理临时数据
         currentStructures = null;
         currentResult = null;
+        aviationSystem = null;
+        playerInfo = null;
+        currentContext = null;
     }
 
     /// <summary>
@@ -136,3 +161,4 @@ public class SettlementState : LeafState<GameProcedureContext>
         Debug.Log("==============================");
     }
 }
+

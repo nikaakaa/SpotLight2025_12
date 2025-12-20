@@ -14,6 +14,9 @@ public class AviationEdge
     public float totalBuildCostMultiplier = 1f; // 地形建造成本倍率总和
     public List<HexCoord> pathCoords = new List<HexCoord>(); // 路径上的六边形坐标
 
+    // 视图引用（由 EdgeLineView 设置，用于动画）
+    public EdgeLineView edgeLineView;
+
     public AviationEdge(int index, AviationNode from, AviationNode to)
     {
         edgeIndex = index;

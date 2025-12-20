@@ -27,6 +27,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7e841bc4e85c99643b481731bc9e1c52
+    m_Address: BuffShopUI
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8512fc55e7a1e624e9c59b0ba6f2a3bd
     m_Address: MainSceneUI
     m_ReadOnly: 0
