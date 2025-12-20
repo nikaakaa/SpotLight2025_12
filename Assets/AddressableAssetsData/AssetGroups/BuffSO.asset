@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: BuffSO
+  m_EditorClassIdentifier: 
+  m_GroupName: BuffSO
+  m_Data:
+    m_SerializedData: []
+  m_GUID: 635d366491eea8246bc9aff1f40cd89e
+  m_SerializeEntries:
+  - m_GUID: 4a6d34408a6c9904ba81207a84b7fc02
+    m_Address: SmallAirportUpgrade
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b5c286bd91366f24eb3d1ad87b2e004f
+    m_Address: MarketFatigue
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 609757b2766f26c488270d847468e368, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 7dfa34004ed5edc4aa088fafc16cbda0, type: 2}
+    - {fileID: 11400000, guid: 69969657b3c2d564ca97f1d9b43d33ec, type: 2}

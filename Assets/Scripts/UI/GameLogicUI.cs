@@ -1,0 +1,372 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Text;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class GameLogicUI : MonoBehaviour
+{
+    public ScrollRect buffListScrollView;
+    public TextMeshProUGUI moneyText;
+    public TextMeshProUGUI currentNodeInformation;
+    public TextMeshProUGUI StatisticsText;
+
+    [Header("刷新")]
+    [SerializeField] private bool autoRefreshBuffList = true;
+    [SerializeField] private float buffListRefreshInterval = 0.5f;
+    [SerializeField] private bool enableHoverRaycastForNodeInfo = true;
+
+    [Header("Buff 列表生成")]
+    [SerializeField] private bool reuseFirstChildAsTemplate = true;
+    [SerializeField] private float buffItemFontSize = 20f;
+
+    private Player boundPlayer;
+    private CityNode currentNode;
+    private Coroutine bindCoroutine;
+    private Coroutine refreshCoroutine;
+
+    private readonly List<TextMeshProUGUI> buffItemTexts = new();
+    private readonly StringBuilder sb = new();
+
+    private void OnEnable()
+    {
+        bindCoroutine = StartCoroutine(BindWhenReady());
+    }
+
+    private void OnDisable()
+    {
+        if (bindCoroutine != null)
+        {
+            StopCoroutine(bindCoroutine);
+            bindCoroutine = null;
+        }
+
+        if (refreshCoroutine != null)
+        {
+            StopCoroutine(refreshCoroutine);
+            refreshCoroutine = null;
+        }
+
+        UnbindPlayer();
+    }
+
+    private void Update()
+    {
+        if (enableHoverRaycastForNodeInfo)
+        {
+            UpdateHoveredNodeInfo();
+        }
+    }
+
+    private IEnumerator BindWhenReady()
+    {
+        // 等待 Player 与 PlayerRunTimeInfo 初始化
+        while (Player.Instance == null && PlayerRunTimeInfo.Current == null)
+        {
+            yield return null;
+        }
+
+        // 优先绑定 Player（可转发事件、可拿到 BuffHandler）
+        if (Player.Instance != null)
+        {
+            BindPlayer(Player.Instance);
+        }
+        else
+        {
+            // 兜底：只用 PlayerRunTimeInfo 刷新静态 UI
+            RefreshAll();
+        }
+    }
+
+    private void BindPlayer(Player player)
+    {
+        if (player == null) return;
+        if (boundPlayer == player) return;
+
+        UnbindPlayer();
+        boundPlayer = player;
+
+        boundPlayer.OnAssetsChanged += HandleAssetsChanged;
+        boundPlayer.OnRoundStarted += HandleRoundStarted;
+        boundPlayer.OnSettlementCompleted += HandleSettlementCompleted;
+
+        RefreshAll();
+
+        if (autoRefreshBuffList)
+        {
+            refreshCoroutine = StartCoroutine(RefreshBuffListLoop());
+        }
+    }
+
+    private void UnbindPlayer()
+    {
+        if (boundPlayer == null) return;
+        boundPlayer.OnAssetsChanged -= HandleAssetsChanged;
+        boundPlayer.OnRoundStarted -= HandleRoundStarted;
+        boundPlayer.OnSettlementCompleted -= HandleSettlementCompleted;
+        boundPlayer = null;
+    }
+
+    private IEnumerator RefreshBuffListLoop()
+    {
+        var wait = new WaitForSeconds(buffListRefreshInterval);
+        while (true)
+        {
+            RefreshBuffList();
+            yield return wait;
+        }
+    }
+
+    private void HandleAssetsChanged(long oldValue, long newValue)
+    {
+        RefreshMoney(newValue);
+        RefreshStatistics();
+    }
+
+    private void HandleRoundStarted(int round)
+    {
+        RefreshStatistics();
+        RefreshBuffList();
+    }
+
+    private void HandleSettlementCompleted(SettlementResult result)
+    {
+        RefreshStatistics();
+        RefreshBuffList();
+    }
+
+    public void RefreshAll()
+    {
+        RefreshMoney(PlayerRunTimeInfo.Current?.Assets ?? boundPlayer?.Assets ?? 0);
+        RefreshStatistics();
+        RefreshBuffList();
+        RefreshCurrentNodeInfo();
+    }
+
+    private void RefreshMoney(long assets)
+    {
+        if (moneyText == null) return;
+        moneyText.text = $"${assets:N0}";
+    }
+
+    private void RefreshStatistics()
+    {
+        if (StatisticsText == null) return;
+
+        var info = PlayerRunTimeInfo.Current;
+        if (info == null)
+        {
+            StatisticsText.text = "PlayerRunTimeInfo 未初始化";
+            return;
+        }
+
+        sb.Clear();
+        sb.AppendLine($"回合: {info.CurrentRound}");
+        sb.AppendLine($"资产: ${info.Assets:N0}");
+        sb.AppendLine($"本回合新增节点: {info.NodesAddedThisRound}");
+        sb.AppendLine($"本回合新增航线: {info.EdgesAddedThisRound}");
+        sb.AppendLine($"累计收益: ${info.TotalIncomeEarned:N0}");
+        sb.AppendLine($"累计成本: ${info.TotalCostPaid:N0}");
+        sb.AppendLine($"最高单回合收益: ${info.HighestRoundIncome:N0}");
+        sb.AppendLine($"最高单回合净利润: ${info.HighestRoundProfit:N0}");
+        sb.AppendLine($"峰值资产: ${info.PeakAssets:N0}");
+        sb.AppendLine($"破产: {(info.IsBankrupt ? "是" : "否")}");
+
+        var last = info.LastSettlementResult;
+        if (last != null)
+        {
+            sb.AppendLine("--- 最近结算 ---");
+            sb.AppendLine($"总收益: ${last.totalIncome:N0}");
+            sb.AppendLine($"总成本: ${last.TotalCost:N0}");
+            sb.AppendLine($"净利润: ${last.NetProfit:N0}");
+        }
+
+        StatisticsText.text = sb.ToString();
+    }
+
+    private void RefreshBuffList()
+    {
+        if (buffListScrollView == null) return;
+        if (buffListScrollView.content == null) return;
+
+        var player = boundPlayer != null ? boundPlayer : Player.Instance;
+        if (player == null)
+        {
+            EnsureBuffItemCount(1);
+            buffItemTexts[0].text = "Player 未初始化";
+            return;
+        }
+
+        var rows = new List<string>();
+
+        rows.Add("【玩家永久 Buff】");
+        AppendBuffRows(rows, player.PlayerBuffHandler);
+        rows.Add(" ");
+        rows.Add("【市场趋势 Buff】");
+        AppendBuffRows(rows, player.MarketBuffHandler);
+
+        EnsureBuffItemCount(rows.Count);
+        for (int i = 0; i < rows.Count; i++)
+        {
+            buffItemTexts[i].text = rows[i];
+        }
+    }
+
+    private static void AppendBuffRows(List<string> rows, BuffHandler handler)
+    {
+        if (handler == null)
+        {
+            rows.Add("  (无处理器)");
+            return;
+        }
+
+        var list = handler.BuffInfoList;
+        if (list == null || list.Count == 0)
+        {
+            rows.Add("  (无)");
+            return;
+        }
+
+        foreach (var buff in list)
+        {
+            if (buff == null || buff.buffData == null)
+            {
+                rows.Add("  (空Buff)");
+                continue;
+            }
+
+            // BuffInfo 实现了 IBuffTicker，但这里只能通过公开属性读取
+            string name = string.IsNullOrWhiteSpace(buff.buffData.buffName) ? buff.buffData.name : buff.buffData.buffName;
+            string duration = buff.buffData.isForever ? "∞" : buff.DurationTimer.ToString();
+            rows.Add($"  ID:{buff.buffData.id} | {name} | 层:{buff.CurStack} | 时长:{duration}");
+        }
+    }
+
+    private void EnsureBuffItemCount(int count)
+    {
+        if (count < 0) count = 0;
+
+        // 第一次：尝试复用 content 的第一个子物体作为模板
+        if (buffItemTexts.Count == 0)
+        {
+            var content = buffListScrollView.content;
+            if (reuseFirstChildAsTemplate && content.childCount > 0)
+            {
+                var first = content.GetChild(0);
+                var tmp = first.GetComponent<TextMeshProUGUI>();
+                if (tmp != null)
+                {
+                    buffItemTexts.Add(tmp);
+                }
+            }
+        }
+
+        // 如果没有模板，就创建一个
+        if (buffItemTexts.Count == 0)
+        {
+            buffItemTexts.Add(CreateBuffTextItem(buffListScrollView.content));
+        }
+
+        // 增加
+        while (buffItemTexts.Count < count)
+        {
+            buffItemTexts.Add(CreateBuffTextItem(buffListScrollView.content));
+        }
+
+        // 多余的隐藏（不销毁，避免 GC）
+        for (int i = 0; i < buffItemTexts.Count; i++)
+        {
+            bool active = i < count;
+            if (buffItemTexts[i] != null && buffItemTexts[i].gameObject.activeSelf != active)
+            {
+                buffItemTexts[i].gameObject.SetActive(active);
+            }
+        }
+    }
+
+    private TextMeshProUGUI CreateBuffTextItem(Transform parent)
+    {
+        var go = new GameObject("BuffItem", typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.raycastTarget = false;
+        if (buffItemFontSize > 0)
+        {
+            tmp.fontSize = buffItemFontSize;
+        }
+
+        // 让布局系统更好工作（如果 content 上挂了 VerticalLayoutGroup/ContentSizeFitter）
+        var layout = go.AddComponent<LayoutElement>();
+        layout.minHeight = buffItemFontSize > 0 ? buffItemFontSize + 6f : 26f;
+
+        return tmp;
+    }
+
+    // ========== 节点信息 ==========
+
+    /// <summary>
+    /// 外部可调用：设置当前关注节点（例如点击选中节点时）
+    /// </summary>
+    public void SetCurrentNode(CityNode node)
+    {
+        currentNode = node;
+        RefreshCurrentNodeInfo();
+    }
+
+    private void RefreshCurrentNodeInfo()
+    {
+        if (currentNodeInformation == null) return;
+
+        if (currentNode == null || currentNode.aviationNode == null || currentNode.aviationNode.nodeData == null)
+        {
+            currentNodeInformation.text = "当前节点: (无)";
+            return;
+        }
+
+        var n = currentNode.aviationNode;
+        var d = n.nodeData;
+        currentNodeInformation.text =
+            $"当前节点: [{n.nodeIndex}] {d.Name}\n" +
+            $"等级: {d.NodeLevel}\n" +
+            $"基础收益: {d.NodeIncome}\n" +
+            $"基础成本: {d.NodeCost}\n" +
+            $"连接航线数: {n.edges?.Count ?? 0}";
+    }
+
+    private void UpdateHoveredNodeInfo()
+    {
+        // 如果外部已经主动 SetCurrentNode，就不抢 UI
+        if (currentNode != null) return;
+
+        Camera cam = Camera.main;
+        if (cam == null) return;
+
+        CityNode hitNode = null;
+
+        // 优先 3D Raycast
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity))
+        {
+            hitNode = hit.collider.GetComponentInParent<CityNode>();
+        }
+
+        // 兜底 2D Raycast
+        if (hitNode == null)
+        {
+            var hit2D = Physics2D.GetRayIntersection(ray, Mathf.Infinity);
+            if (hit2D.collider != null)
+            {
+                hitNode = hit2D.collider.GetComponentInParent<CityNode>();
+            }
+        }
+
+        if (hitNode != null)
+        {
+            SetCurrentNode(hitNode);
+            // 立刻释放，让下一帧继续跟随鼠标
+            currentNode = null;
+        }
+    }
+}

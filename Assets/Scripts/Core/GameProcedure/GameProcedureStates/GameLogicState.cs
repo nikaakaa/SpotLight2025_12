@@ -39,6 +39,7 @@ public class GameLogicState : ComposeState<GameProcedureContext>
         {
             AirLineController.CreateInScene();
         }
+        UIManager.Instance.ShowPanel("GameLogicUI");
     }
 
     protected override void OnUpdate(GameProcedureContext ctx)
@@ -48,6 +49,8 @@ public class GameLogicState : ComposeState<GameProcedureContext>
 
     protected override void OnExit(GameProcedureContext ctx)
     {
+
+        UIManager.Instance.ShowPanel("GameLogicUI");
         // 清理运行时数据
         PlayerRunTimeInfo.Current = null;
         playerRunTimeInfo = null;
