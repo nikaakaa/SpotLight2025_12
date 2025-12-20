@@ -27,13 +27,13 @@ public class SettlementCalculator
     /// <param name="aviationSystem">航空系统</param>
     /// <param name="structures">已检测的结构</param>
     /// <param name="playerInfo">玩家运行时数据</param>
-    /// <param name="buffHandler">Buff 处理器（可选）</param>
+    /// <param name="buffSystem">Buff 系统接口（必须传入实现了此接口的对象，如 playerInfo）</param>
     /// <returns>结算结果</returns>
     public SettlementResult Calculate(
         AviationSystem aviationSystem,
         AllStructures structures,
         PlayerRunTimeInfo playerInfo,
-        BuffHandler buffHandler = null)
+        IGameplayBuffSystem buffSystem)
     {
         var result = new SettlementResult();
         result.Initialize();
@@ -47,22 +47,22 @@ public class SettlementCalculator
         Debug.Log("[SettlementCalculator] 开始结算...");
 
         // Step 1: 计算节点基础收益
-        CalculateNodeBaseIncomes(aviationSystem, result, buffHandler);
+        CalculateNodeBaseIncomes(aviationSystem, result, buffSystem);
 
         // Step 2: 计算结构倍率并应用到节点
-        ApplyStructureMultipliers(structures, result, buffHandler);
+        ApplyStructureMultipliers(structures, result, buffSystem);
 
         // Step 3: 计算节点成本
-        CalculateNodeCosts(aviationSystem, result, playerInfo, buffHandler);
+        CalculateNodeCosts(aviationSystem, result, playerInfo, buffSystem);
 
         // Step 4: 计算航线成本
-        CalculateEdgeCosts(aviationSystem, result, buffHandler);
+        CalculateEdgeCosts(aviationSystem, result, buffSystem);
 
-        // Step 5: 汇总
-        SummarizeResult(result);
+        // Step 5: 汇总（预先计算资产变化供动画使用）
+        SummarizeResult(result, playerInfo);
 
         // Step 6: 触发结算完成回调
-        buffHandler?.TriggerCustom(E_BuffCallBackType.OnSettlementComplete, result);
+        buffSystem?.TriggerSettlementCompleteBuffs(result);
 
         Debug.Log($"[SettlementCalculator] 结算完成: 总收益={result.totalIncome}, 总成本={result.TotalCost}, 净利润={result.NetProfit}");
 
@@ -74,15 +74,20 @@ public class SettlementCalculator
     /// <summary>
     /// 计算所有节点的基础收益
     /// </summary>
-    private void CalculateNodeBaseIncomes(AviationSystem system, SettlementResult result, BuffHandler buffHandler)
+    private void CalculateNodeBaseIncomes(AviationSystem system, SettlementResult result, IGameplayBuffSystem buffSystem)
     {
+        Debug.Log($"[SettlementCalculator] ========== 开始计算节点收益 ==========");
+
         foreach (var kvp in system.aviationNodeDict)
         {
             var node = kvp.Value;
             int nodeIndex = node.nodeIndex;
 
-            // 基础收益 = 节点配置的收益值
-            float baseIncome = node.nodeData?.NodeIncome ?? 0;
+            // 原始收益 = 节点配置的收益值（未应用任何 Buff）
+            float rawIncome = node.nodeData?.NodeIncome ?? 0;
+
+            // 记录原始收益（供动画初始显示）
+            result.nodeRawIncomes[nodeIndex] = rawIncome;
 
             // 获取节点等级（从配置ID推断：1001=lv1, 1002=lv2...）
             int nodeLevel = GetNodeLevel(node);
@@ -91,13 +96,29 @@ public class SettlementCalculator
             nodeIncomeModifier.Reset();
 
             // 触发 Buff 回调
-            buffHandler?.TriggerCustom(E_BuffCallBackType.OnCalculateNodeBaseIncome, nodeLevel, nodeIncomeModifier);
+            buffSystem?.TriggerNodeIncomeBuffs(nodeLevel, nodeIncomeModifier);
 
-            // 应用修正
-            float finalBaseIncome = nodeIncomeModifier.Apply(baseIncome);
+            // 记录 Buff 效果（供动画使用）
+            result.nodeBuffFlatBonus[nodeIndex] = nodeIncomeModifier.FlatBonus;
+            result.nodeBuffMultiplier[nodeIndex] = nodeIncomeModifier.Multiplier;
 
-            result.nodeBaseIncomes[nodeIndex] = finalBaseIncome;
-            result.nodeFinalIncomes[nodeIndex] = finalBaseIncome; // 暂存，后续被结构倍率修正
+            // 记录生效的 Buff ID
+            if (nodeIncomeModifier.AppliedBuffIds.Count > 0)
+            {
+                result.nodeAppliedBuffs[nodeIndex] = new List<int>(nodeIncomeModifier.AppliedBuffIds);
+            }
+
+            // 调试：如果有 Buff 效果，打印出来
+            if (nodeIncomeModifier.FlatBonus != 0 || nodeIncomeModifier.Multiplier != 1f)
+            {
+                Debug.Log($"[SettlementCalculator] 节点{nodeIndex} (lv{nodeLevel}): Buff效果 FlatBonus={nodeIncomeModifier.FlatBonus}, Multiplier={nodeIncomeModifier.Multiplier}");
+            }
+
+            // 应用修正得到基础收益（Buff 后、结构倍率前）
+            float incomeAfterBuff = nodeIncomeModifier.Apply(rawIncome);
+
+            result.nodeBaseIncomes[nodeIndex] = incomeAfterBuff;
+            result.nodeFinalIncomes[nodeIndex] = incomeAfterBuff; // 暂存，后续被结构倍率修正
         }
 
         Debug.Log($"[SettlementCalculator] 计算节点基础收益完成: {result.nodeBaseIncomes.Count} 个节点");
@@ -110,7 +131,7 @@ public class SettlementCalculator
     /// <summary>
     /// 计算结构倍率并应用到节点收益
     /// </summary>
-    private void ApplyStructureMultipliers(AllStructures structures, SettlementResult result, BuffHandler buffHandler)
+    private void ApplyStructureMultipliers(AllStructures structures, SettlementResult result, IGameplayBuffSystem buffSystem)
     {
         if (structures == null) return;
 
@@ -126,7 +147,13 @@ public class SettlementCalculator
             float baseMultiplier = structure.BaseMultiplier;
 
             // 触发 Buff 回调
-            buffHandler?.TriggerCustom(E_BuffCallBackType.OnCalculateStructureMultiplier, structure.Type, structureMultiplierModifier);
+            buffSystem?.TriggerStructureMultiplierBuffs(structure.Type, structureMultiplierModifier);
+
+            // 记录生效的 Buff ID
+            if (structureMultiplierModifier.AppliedBuffIds.Count > 0)
+            {
+                result.structureAppliedBuffs[structureIndex] = new List<int>(structureMultiplierModifier.AppliedBuffIds);
+            }
 
             // 应用修正
             float finalMultiplier = structureMultiplierModifier.Apply(baseMultiplier);
@@ -176,7 +203,7 @@ public class SettlementCalculator
     /// <summary>
     /// 计算所有节点的成本
     /// </summary>
-    private void CalculateNodeCosts(AviationSystem system, SettlementResult result, PlayerRunTimeInfo playerInfo, BuffHandler buffHandler)
+    private void CalculateNodeCosts(AviationSystem system, SettlementResult result, PlayerRunTimeInfo playerInfo, IGameplayBuffSystem buffSystem)
     {
         foreach (var kvp in system.aviationNodeDict)
         {
@@ -191,7 +218,7 @@ public class SettlementCalculator
             nodeCostModifier.Reset();
 
             // 触发 Buff 回调
-            buffHandler?.TriggerCustom(E_BuffCallBackType.OnCalculateNodeCost, nodeLevel, nodeCostModifier);
+            buffSystem?.TriggerNodeCostBuffs(nodeLevel, nodeCostModifier);
 
             // 应用修正
             float finalCost = nodeCostModifier.Apply(baseCost);
@@ -221,7 +248,7 @@ public class SettlementCalculator
     /// <summary>
     /// 计算所有航线的成本
     /// </summary>
-    private void CalculateEdgeCosts(AviationSystem system, SettlementResult result, BuffHandler buffHandler)
+    private void CalculateEdgeCosts(AviationSystem system, SettlementResult result, IGameplayBuffSystem buffSystem)
     {
         foreach (var kvp in system.aviationEdgeDict)
         {
@@ -236,7 +263,7 @@ public class SettlementCalculator
             edgeCostModifier.Reset();
 
             // 触发 Buff 回调
-            buffHandler?.TriggerCustom(E_BuffCallBackType.OnCalculateEdgeCost, pathLength, edgeCostModifier);
+            buffSystem?.TriggerEdgeCostBuffs(pathLength, edgeCostModifier);
 
             // 应用修正
             float finalCost = edgeCostModifier.Apply(baseCost);
@@ -254,7 +281,7 @@ public class SettlementCalculator
     /// <summary>
     /// 汇总结算结果
     /// </summary>
-    private void SummarizeResult(SettlementResult result)
+    private void SummarizeResult(SettlementResult result, PlayerRunTimeInfo playerInfo = null)
     {
         // 计算总收益
         float totalIncome = 0f;
@@ -279,6 +306,13 @@ public class SettlementCalculator
             totalEdgeCost += kvp.Value;
         }
         result.totalEdgeCost = (long)totalEdgeCost;
+
+        // 预先计算结算前后资产（供动画使用）
+        if (playerInfo != null)
+        {
+            result.assetsBefore = playerInfo.Assets;
+            result.assetsAfter = playerInfo.Assets + result.NetProfit;
+        }
     }
 
     #endregion

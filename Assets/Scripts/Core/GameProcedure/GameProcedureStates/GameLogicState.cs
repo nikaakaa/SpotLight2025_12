@@ -45,6 +45,14 @@ public class GameLogicState : ComposeState<GameProcedureContext>
     protected override void OnUpdate(GameProcedureContext ctx)
     {
         // ComposeState 的 Update 会自动处理子状态
+
+        // 驱动 Buff 系统更新
+        if (playerRunTimeInfo != null)
+        {
+            float dt = Time.deltaTime;
+            playerRunTimeInfo.PlayerBuffSystem?.Update(dt);
+            playerRunTimeInfo.MarketBuffSystem?.Update(dt);
+        }
     }
 
     protected override void OnExit(GameProcedureContext ctx)

@@ -159,7 +159,17 @@ public class SettlementAnimator : MonoBehaviour
             }
         }
 
-        // 2. 逐个亮起节点并显示【基础收益】
+        // 触发结构 Buff UI 动画
+        if (result.structureAppliedBuffs != null && 
+            result.structureAppliedBuffs.TryGetValue(structureIndex, out var structureBuffIds))
+        {
+            foreach (var buffId in structureBuffIds)
+            {
+                GameLogicUI.Instance?.PunchBuffItem(buffId);
+            }
+        }
+
+        // 2. 逐个亮起节点并显示【原始收益】（未应用任何 Buff）
         var nodeFloatingNumbers = new Dictionary<int, FloatingNumber>();
         foreach (var node in structure.Nodes)
         {
@@ -169,13 +179,13 @@ public class SettlementAnimator : MonoBehaviour
             // 高亮节点
             cityNode.Highlight(0.1f * timeScale);
 
-            // 获取【基础收益】（未乘倍率）
-            float baseIncome = result.nodeBaseIncomes.GetValueOrDefault(node.nodeIndex, 0);
+            // 获取【原始收益】（未应用 Buff）
+            float rawIncome = result.nodeRawIncomes.GetValueOrDefault(node.nodeIndex, 0);
 
-            // 显示基础收益数字
+            // 显示原始收益数字
             var floatingNumber = await CreateFloatingNumber(
                 cityNode.GetFloatingNumberPosition(),
-                baseIncome,
+                rawIncome,
                 SettlementAnimConfig.IncomeColor,
                 SettlementAnimConfig.NodePopDelay * timeScale);
 
@@ -192,10 +202,13 @@ public class SettlementAnimator : MonoBehaviour
             }
         }
 
-        // 3. 倍率飞向节点并更新数字
+        // 2.5. Buff 效果动画（加数和乘数碰撞到节点）
+        await AnimateBuffEffects(structure, result, nodeFloatingNumbers, timeScale, ct);
+
+        // 3. 结构倍率飞向节点并更新数字
         if (result.structureMultipliers.TryGetValue(structureIndex, out float multiplier) && multiplier != 1f)
         {
-            Log($"    倍率: ×{multiplier:F1}");
+            Log($"    结构倍率: ×{multiplier:F1}");
 
             // 闪烁边线
             foreach (var edge in structure.Edges)
@@ -332,11 +345,11 @@ public class SettlementAnimator : MonoBehaviour
         // 3. 清理成本数字
         ClearFloatingNumbers();
 
-        // 4. 更新总资产（动画滚动）
+        // 4. 更新总资产（动画滚动：从结算前资产滚动到结算后资产）
         long finalAssets = result.assetsAfter;
         if (GameLogicUI.Instance != null)
         {
-            await GameLogicUI.Instance.AnimateMoneyTo(finalAssets, SettlementAnimConfig.MoneyRollDuration);
+            await GameLogicUI.Instance.AnimateMoneyTo(finalAssets, SettlementAnimConfig.MoneyRollDuration, result.assetsBefore);
         }
     }
 
@@ -425,6 +438,170 @@ public class SettlementAnimator : MonoBehaviour
             // 倍率使用特殊格式显示
             await fn.ShowMultiplier(multiplier, color, duration);
             activeFloatingNumbers.Add(fn);
+        }
+    }
+
+    /// <summary>
+    /// Buff 效果动画：遍历结构中的节点，播放加数和乘数的碰撞动画
+    /// </summary>
+    private async UniTask AnimateBuffEffects(
+        StructureBase structure,
+        SettlementResult result,
+        Dictionary<int, FloatingNumber> nodeFloatingNumbers,
+        float timeScale,
+        CancellationToken ct)
+    {
+        // 检查是否有任何需要显示的 Buff 效果
+        bool hasAnyBuff = false;
+        foreach (var node in structure.Nodes)
+        {
+            long flatBonus = result.nodeBuffFlatBonus.GetValueOrDefault(node.nodeIndex, 0);
+            float multiplier = result.nodeBuffMultiplier.GetValueOrDefault(node.nodeIndex, 1f);
+            if (flatBonus != 0 || Mathf.Abs(multiplier - 1f) > 0.001f)
+            {
+                hasAnyBuff = true;
+                break;
+            }
+        }
+
+        if (!hasAnyBuff)
+        {
+            Log("    无 Buff 效果，跳过动画");
+            return;
+        }
+
+        Log("    播放 Buff 效果动画...");
+
+        // 收集所有 Buff 碰撞任务
+        var buffTasks = new List<UniTask>();
+
+        foreach (var node in structure.Nodes)
+        {
+            if (!nodeFloatingNumbers.TryGetValue(node.nodeIndex, out var nodeNumber)) continue;
+            if (node.cityNodeView == null) continue;
+
+            long flatBonus = result.nodeBuffFlatBonus.GetValueOrDefault(node.nodeIndex, 0);
+            float multiplier = result.nodeBuffMultiplier.GetValueOrDefault(node.nodeIndex, 1f);
+            float rawIncome = result.nodeRawIncomes.GetValueOrDefault(node.nodeIndex, 0);
+            float incomeAfterBuff = result.nodeBaseIncomes.GetValueOrDefault(node.nodeIndex, rawIncome);
+
+            Vector3 nodePos = node.cityNodeView.GetFloatingNumberPosition();
+
+            // 触发节点 Buff UI 动画
+            if (result.nodeAppliedBuffs != null && 
+                result.nodeAppliedBuffs.TryGetValue(node.nodeIndex, out var buffIds))
+            {
+               foreach (var buffId in buffIds)
+               {
+                   GameLogicUI.Instance?.PunchBuffItem(buffId);
+               }
+            }
+
+            // 如果有加数 Buff，播放加数碰撞动画
+            if (flatBonus != 0)
+            {
+                // 计算应用加数后的中间值
+                float valueAfterFlat = rawIncome + flatBonus;
+                
+                buffTasks.Add(AnimateBuffImpact(
+                    nodePos,
+                    nodeNumber,
+                    flatBonus,
+                    isAdditive: true,
+                    valueAfterFlat,
+                    timeScale,
+                    ct));
+            }
+
+            // 如果有乘数 Buff（非1），播放乘数碰撞动画
+            if (Mathf.Abs(multiplier - 1f) > 0.001f)
+            {
+                buffTasks.Add(AnimateBuffImpact(
+                    nodePos,
+                    nodeNumber,
+                    multiplier,
+                    isAdditive: false,
+                    incomeAfterBuff,
+                    timeScale,
+                    ct));
+            }
+        }
+
+        // 等待所有 Buff 动画完成
+        if (buffTasks.Count > 0)
+        {
+            await UniTask.WhenAll(buffTasks);
+            
+            // 稍微等待一下再继续
+            await UniTask.Delay((int)(100 * timeScale), cancellationToken: ct);
+        }
+    }
+
+    /// <summary>
+    /// Buff 碰撞动画：从侧边飞入并撞击节点数字，更新数值
+    /// </summary>
+    /// <param name="nodePos">节点位置</param>
+    /// <param name="nodeNumber">节点上的浮动数字</param>
+    /// <param name="buffValue">Buff 值（加数为 long，乘数会被转换为 float）</param>
+    /// <param name="isAdditive">true=加数，false=乘数</param>
+    /// <param name="targetValue">碰撞后的目标值</param>
+    /// <param name="timeScale">时间缩放</param>
+    /// <param name="ct">取消令牌</param>
+    private async UniTask AnimateBuffImpact(
+        Vector3 nodePos,
+        FloatingNumber nodeNumber,
+        float buffValue,
+        bool isAdditive,
+        float targetValue,
+        float timeScale,
+        CancellationToken ct)
+    {
+        if (floatingNumberPrefab == null || nodeNumber == null) return;
+
+        // 1. 计算起始位置（从节点左侧飞入）
+        Vector3 startPos = nodePos + SettlementAnimConfig.BuffStartOffset;
+
+        // 2. 创建 Buff 数字
+        var buffGo = Instantiate(floatingNumberPrefab, startPos, Quaternion.identity);
+        var buffFn = buffGo.GetComponent<FloatingNumber>();
+        if (buffFn == null)
+        {
+            Destroy(buffGo);
+            return;
+        }
+
+        // 3. 确定颜色（正面增益 vs 负面减益）
+        bool isPositive = isAdditive ? buffValue > 0 : buffValue > 1f;
+        Color buffColor = isPositive 
+            ? SettlementAnimConfig.BuffPositiveColor 
+            : SettlementAnimConfig.BuffNegativeColor;
+
+        // 4. 显示 Buff 数字
+        buffFn.transform.localScale = Vector3.one * 0.6f;
+        if (isAdditive)
+        {
+            // 加数格式：+10 或 -5
+            await buffFn.ShowAdditive((long)buffValue, buffColor, 0.1f * timeScale);
+        }
+        else
+        {
+            // 乘数格式：×0.9 或 ×1.2
+            await buffFn.ShowMultiplier(buffValue, buffColor, 0.1f * timeScale);
+        }
+
+        // 5. 飞向节点
+        float flyDuration = SettlementAnimConfig.BuffFlyDuration * timeScale;
+        var flyTween = buffFn.transform.DOMove(nodePos, flyDuration).SetEase(Ease.InQuad);
+        await UniTask.WaitUntil(() => !flyTween.IsActive() || flyTween.IsComplete(), cancellationToken: ct);
+
+        // 6. 碰撞效果 - 销毁 Buff 数字
+        Destroy(buffGo);
+
+        // 7. 节点数字震动并更新
+        if (nodeNumber != null)
+        {
+            nodeNumber.transform.DOShakeScale(0.15f * timeScale, 0.2f, 8);
+            await nodeNumber.AnimateTo(targetValue, SettlementAnimConfig.IncomeColor, 0.15f * timeScale);
         }
     }
 

@@ -14,7 +14,8 @@ public static class Market_AllNodeIncome_Module
     {
         if (args?.Length < 2) return;
         var modifier = args[1] as IncomeModifier;
-        modifier.Multiplier *= 0.9f;
+        int stack = ((IBuffTicker)info).CurStack;
+        modifier.Multiplier *= Mathf.Pow(0.9f, stack);
     }
 }
 
@@ -26,7 +27,8 @@ public static class Market_AllStructureMultiplier_Module
     {
         if (args?.Length < 2) return;
         var modifier = args[1] as MultiplierModifier;
-        modifier.Multiplier *= 0.9f;
+        int stack = ((IBuffTicker)info).CurStack;
+        modifier.Multiplier *= Mathf.Pow(0.9f, stack);
     }
 }
 
@@ -39,8 +41,9 @@ public static class Market_RingMultiplier_Module
         if (args?.Length < 2) return;
         var structType = (E_StructureType)args[0];
         var modifier = args[1] as MultiplierModifier;
+        int stack = ((IBuffTicker)info).CurStack;
         if (structType == E_StructureType.Ring)
-            modifier.Multiplier *= 0.85f;
+            modifier.Multiplier *= Mathf.Pow(0.85f, stack);
     }
 }
 
@@ -53,8 +56,9 @@ public static class Market_SingleLineMultiplier_Module
         if (args?.Length < 2) return;
         var structType = (E_StructureType)args[0];
         var modifier = args[1] as MultiplierModifier;
+        int stack = ((IBuffTicker)info).CurStack;
         if (structType == E_StructureType.SingleLine)
-            modifier.Multiplier *= 0.9f;
+            modifier.Multiplier *= Mathf.Pow(0.9f, stack);
     }
 }
 
@@ -67,8 +71,9 @@ public static class Market_RadialIncome_Module
         if (args?.Length < 2) return;
         var structType = (E_StructureType)args[0];
         var modifier = args[1] as MultiplierModifier;
+        int stack = ((IBuffTicker)info).CurStack;
         if (structType == E_StructureType.Radial)
-            modifier.Multiplier *= 0.85f;
+            modifier.Multiplier *= Mathf.Pow(0.85f, stack);
     }
 }
 
@@ -85,7 +90,8 @@ public static class Market_Level1Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 1) modifier.Multiplier *= 0.85f;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 1) modifier.Multiplier *= Mathf.Pow(0.85f, stack);
     }
 }
 
@@ -97,7 +103,8 @@ public static class Market_Level2Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 2) modifier.Multiplier *= 0.85f;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 2) modifier.Multiplier *= Mathf.Pow(0.85f, stack);
     }
 }
 
@@ -109,7 +116,8 @@ public static class Market_Level3Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 3) modifier.Multiplier *= 0.85f;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 3) modifier.Multiplier *= Mathf.Pow(0.85f, stack);
     }
 }
 
@@ -121,7 +129,8 @@ public static class Market_Level4Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 4) modifier.Multiplier *= 0.85f;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 4) modifier.Multiplier *= Mathf.Pow(0.85f, stack);
     }
 }
 
@@ -133,7 +142,8 @@ public static class Market_Level5Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 5) modifier.Multiplier *= 0.85f;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 5) modifier.Multiplier *= Mathf.Pow(0.85f, stack);
     }
 }
 
@@ -147,7 +157,8 @@ public static class Market_HubIncome_Module
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
         // 枢纽 = lv4 或 lv5
-        if (nodeLevel >= 4) modifier.Multiplier *= 0.85f;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel >= 4) modifier.Multiplier *= Mathf.Pow(0.85f, stack);
     }
 }
 
@@ -163,7 +174,8 @@ public static class Market_AllEdgeCost_Module
     {
         if (args?.Length < 2) return;
         var modifier = args[1] as IncomeModifier;
-        modifier.Multiplier *= 1.25f;
+        int stack = ((IBuffTicker)info).CurStack;
+        modifier.Multiplier *= Mathf.Pow(1.25f, stack);
     }
 }
 
@@ -180,8 +192,9 @@ public static class Market_SmallAirportRevival_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel <= 2) modifier.Multiplier *= 1.3f;
-        else if (nodeLevel >= 4) modifier.Multiplier *= 0.75f;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel <= 2) modifier.Multiplier *= Mathf.Pow(1.3f, stack);
+        else if (nodeLevel >= 4) modifier.Multiplier *= Mathf.Pow(0.75f, stack);
     }
 }
 
@@ -194,7 +207,8 @@ public static class Market_MediumAirportSurplus_Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 3) modifier.Multiplier *= 0.8f;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 3) modifier.Multiplier *= Mathf.Pow(0.8f, stack);
     }
 }
 
@@ -215,7 +229,8 @@ public static class Player_Level1Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 1) modifier.FlatBonus += 3;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 1) modifier.FlatBonus += 3 * stack;
     }
 }
 
@@ -227,7 +242,8 @@ public static class Player_Level2Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 2) modifier.FlatBonus += 8;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 2) modifier.FlatBonus += 8 * stack;
     }
 }
 
@@ -239,7 +255,8 @@ public static class Player_Level3Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 3) modifier.FlatBonus += 15;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 3) modifier.FlatBonus += 15 * stack;
     }
 }
 
@@ -251,7 +268,8 @@ public static class Player_Level4Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 4) modifier.FlatBonus += 25;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 4) modifier.FlatBonus += 25 * stack;
     }
 }
 
@@ -263,7 +281,8 @@ public static class Player_Level5Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 5) modifier.FlatBonus += 35;
+        int stack = ((IBuffTicker)info).CurStack;
+        if (nodeLevel == 5) modifier.FlatBonus += 35 * stack;
     }
 }
 
@@ -280,8 +299,9 @@ public static class Player_RingMultiplier_Module
         if (args?.Length < 2) return;
         var structType = (E_StructureType)args[0];
         var modifier = args[1] as MultiplierModifier;
+        int stack = ((IBuffTicker)info).CurStack;
         if (structType == E_StructureType.Ring)
-            modifier.FlatBonus += 0.2f;
+            modifier.FlatBonus += 0.2f * stack;
     }
 }
 
@@ -294,8 +314,9 @@ public static class Player_SingleLineMultiplier_Module
         if (args?.Length < 2) return;
         var structType = (E_StructureType)args[0];
         var modifier = args[1] as MultiplierModifier;
+        int stack = ((IBuffTicker)info).CurStack;
         if (structType == E_StructureType.SingleLine)
-            modifier.FlatBonus += 0.1f;
+            modifier.FlatBonus += 0.1f * stack;
     }
 }
 
@@ -308,8 +329,9 @@ public static class Player_RadialMultiplier_Module
         if (args?.Length < 2) return;
         var structType = (E_StructureType)args[0];
         var modifier = args[1] as MultiplierModifier;
+        int stack = ((IBuffTicker)info).CurStack;
         if (structType == E_StructureType.Radial)
-            modifier.FlatBonus += 0.1f;
+            modifier.FlatBonus += 0.1f * stack;
     }
 }
 

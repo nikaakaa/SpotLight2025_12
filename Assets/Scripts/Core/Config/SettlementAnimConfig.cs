@@ -54,6 +54,23 @@ public static class SettlementAnimConfig
     /// <summary>倍率颜色（橙色）</summary>
     public static readonly Color MultiplierColor = new(1f, 0.6f, 0.2f, 1f);
 
+    /// <summary>Buff 增益颜色（青绿色，与倍率区分）</summary>
+    public static readonly Color BuffPositiveColor = new(0.3f, 1f, 0.7f, 1f);
+
+    /// <summary>Buff 减益颜色（紫红色，与成本红区分）</summary>
+    public static readonly Color BuffNegativeColor = new(0.9f, 0.4f, 0.8f, 1f);
+
+    // ========== Buff 动画配置 ==========
+
+    /// <summary>Buff 碰撞动画时长</summary>
+    public const float BuffImpactDuration = 0.25f;
+
+    /// <summary>Buff 数字飞行时长</summary>
+    public const float BuffFlyDuration = 0.3f;
+
+    /// <summary>Buff 数字起始偏移（相对于节点）</summary>
+    public static readonly Vector3 BuffStartOffset = new(-2f, 0.5f, 0);
+
     // ========== 缩放配置 ==========
 
     /// <summary>节点高亮时的缩放</summary>

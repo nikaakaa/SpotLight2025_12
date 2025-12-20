@@ -87,6 +87,15 @@ public class LoadingGameState : LeafState<GameProcedureContext>
         PlayerRunTimeInfo.Current = playerRunTimeInfo;
         Debug.Log($"[{Name}] 玩家运行时数据已创建");
 
+        // 1.5 创建 Player 对象并绑定
+        var player = Player.CreateInScene();
+        player.Bind(playerRunTimeInfo);
+        Debug.Log($"[{Name}] Player 对象已创建并绑定");
+
+        // 确保 BuffRegistry 已初始化
+        BuffRegistry.Initialize();
+        Debug.Log($"[{Name}] BuffRegistry 已初始化");
+
         // 2. 初始化并生成地形（使用 GameConfig 常量）
         var terrainSystem = new TerrainSystem();
         terrainSystem.GenerateTerrain(GameConfig.TERRAIN_SEED, GameConfig.MAP_RADIUS);

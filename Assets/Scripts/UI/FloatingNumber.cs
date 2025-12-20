@@ -95,6 +95,36 @@ public class FloatingNumber : MonoBehaviour
     }
 
     /// <summary>
+    /// 显示加数（格式：+10 或 -5）
+    /// </summary>
+    public async UniTask ShowAdditive(long addValue, Color color, float duration = 0.3f)
+    {
+        currentValue = addValue;
+
+        // 设置加数文本格式
+        if (numberText != null)
+        {
+            string prefix = addValue >= 0 ? "+" : "";
+            numberText.text = $"{prefix}{addValue:N0}";
+            numberText.color = color;
+        }
+
+        // 设置初始状态
+        transform.localScale = Vector3.zero;
+        if (canvasGroup != null)
+            canvasGroup.alpha = 0;
+
+        // 弹出动画
+        var seq = DOTween.Sequence();
+        seq.Append(transform.DOScale(1.2f, duration * 0.5f).SetEase(Ease.OutBack));
+        seq.Append(transform.DOScale(1f, duration * 0.5f).SetEase(Ease.InOutSine));
+        if (canvasGroup != null)
+            seq.Join(canvasGroup.DOFade(1f, duration * 0.3f));
+
+        await WaitForTween(seq);
+    }
+
+    /// <summary>
     /// 数值变化动画（Buff加成时使用）
     /// </summary>
     public async UniTask AnimateTo(float newValue, Color color, float duration = 0.3f)

@@ -61,18 +61,17 @@ public class SettlementState : LeafState<GameProcedureContext>
         Debug.Log($"[{Name}] Step 1: 结构识别...");
         currentStructures = StructureDetector.DetectAll(aviationSystem);
 
-        // Step 2: 获取 BuffHandler（如果有）
-        BuffHandler buffHandler = null;
-        // TODO: 从玩家对象获取 BuffHandler
-        // buffHandler = playerInfo.GetBuffHandler();
-
-        // Step 3: 执行结算计算
+        // Step 2: 执行结算计算
         Debug.Log($"[{Name}] Step 2: 结算计算...");
+
+        // 传递 playerInfo 作为 IGameplayBuffSystem 接口
+        IGameplayBuffSystem buffSystem = playerInfo;
+
         currentResult = settlementCalculator.Calculate(
             aviationSystem,
             currentStructures,
             playerInfo,
-            buffHandler
+            buffSystem
         );
 
         // 打印结算摘要
@@ -90,14 +89,30 @@ public class SettlementState : LeafState<GameProcedureContext>
     {
         animationStarted = true;
 
+        // ★ 在异步方法开始时捕获所有引用到局部变量
+        // 这样即使 OnExit 清空了成员变量，局部变量仍然有效
+        var localPlayerInfo = playerInfo;
+        var localResult = currentResult;
+        var localStructures = currentStructures;
+        var localAviationSystem = aviationSystem;
+        var localContext = currentContext;
+
+        // 预先验证
+        if (localPlayerInfo == null || localResult == null)
+        {
+            Debug.LogError($"[{Name}] 关键数据为空，无法进行结算");
+            settlementComplete = true;
+            return;
+        }
+
         // 检查动画器是否存在
         if (SettlementAnimator.Instance != null)
         {
             // 播放完整动画
             await SettlementAnimator.Instance.PlayAsync(
-                currentStructures,
-                currentResult,
-                aviationSystem
+                localStructures,
+                localResult,
+                localAviationSystem
             );
         }
         else
@@ -109,13 +124,13 @@ public class SettlementState : LeafState<GameProcedureContext>
 
         // 动画完成后应用结算结果
         Debug.Log($"[{Name}] Step 4: 应用结算结果...");
-        playerInfo.ApplySettlement(currentResult);
+        localPlayerInfo.ApplySettlement(localResult);
 
         // 破产检测
-        if (playerInfo.IsBankrupt)
+        if (localPlayerInfo.IsBankrupt)
         {
-            Debug.LogWarning($"[{Name}] 玩家破产！资产={playerInfo.Assets}");
-            currentContext.Send(GameEvent.Bankruptcy);
+            Debug.LogWarning($"[{Name}] 玩家破产！资产={localPlayerInfo.Assets}");
+            localContext?.Send(GameEvent.Bankruptcy);
             settlementComplete = true;
             return;
         }
@@ -123,7 +138,7 @@ public class SettlementState : LeafState<GameProcedureContext>
         // 进入下一状态
         Debug.Log($"[{Name}] 结算完成，进入下一状态");
         settlementComplete = true;
-        currentContext.Next();
+        localContext?.Next();
     }
 
     protected override void OnUpdate(GameProcedureContext ctx)

@@ -87,8 +87,31 @@ public class PurchaseBuffState : LeafState<GameProcedureContext>
 
         Debug.Log($"[{Name}] 玩家选择了 Buff: {buffId}");
 
-        // TODO: 应用 Buff 到玩家
-        // PlayerData.ActiveBuffs.Add(buffId);
+        // 获取 Buff 价格
+        int price = BuffDisplayConfig.GetBuffPrice(buffId);
+
+        // 检查玩家是否有足够资产
+        var playerInfo = PlayerRunTimeInfo.Current;
+        if (playerInfo == null)
+        {
+            Debug.LogError($"[{Name}] PlayerRunTimeInfo.Current 为空！");
+            cachedContext?.Next();
+            return;
+        }
+
+        // 尝试购买
+        if (playerInfo.PurchaseBuff(buffId, price))
+        {
+            Debug.Log($"[{Name}] 购买成功！Buff ID={buffId}, 价格={price}, 剩余资产={playerInfo.Assets}");
+            Debug.Log($"[{Name}] 拥有的 Buff 数量: {playerInfo.OwnedPlayerBuffIds.Count}");
+
+            // 刷新 UI
+            GameLogicUI.Instance?.RefreshAll();
+        }
+        else
+        {
+            Debug.LogWarning($"[{Name}] 购买失败！资产不足，需要 {price}，当前 {playerInfo.Assets}");
+        }
 
         // 进入下一状态
         cachedContext?.Next();

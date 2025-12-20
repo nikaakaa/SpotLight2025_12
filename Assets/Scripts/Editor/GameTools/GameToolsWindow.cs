@@ -140,7 +140,7 @@ public class BuffDebugViewModel
         var names = new List<string>();
         foreach (var buff in BuffRegistry.GetAllBuffs())
         {
-            names.Add(buff.buffName);
+            names.Add($"[{buff.id}] {buff.buffName}");
         }
         return names.Count > 0 ? names : new List<string> { "MarketBuff_Fatigue" };
     }
@@ -152,14 +152,26 @@ public class BuffDebugViewModel
     [Button("Add to Player"), GUIColor(0.5f, 1f, 0.5f)]
     public void AddPlayerBuff()
     {
-        if (Player.Instance != null && !string.IsNullOrEmpty(SelectedBuffName))
+        if (PlayerRunTimeInfo.Current?.PlayerBuffSystem != null)
         {
-            bool success = Player.Instance.AddPlayerBuff(SelectedBuffName);
-            Debug.Log($"[BuffDebugger] Add Player Buff '{SelectedBuffName}': {success}");
+            // Parse ID from string "[ID] Name"
+            int buffId = 0;
+            if (int.TryParse(SelectedBuffName.Split(' ')[0].Trim('[', ']'), out buffId))
+            {
+                bool success = PlayerRunTimeInfo.Current.PlayerBuffSystem.AddBuffById(buffId);
+                Debug.Log($"[BuffDebugger] Add Player Buff ID {buffId}: {success}");
+            }
+            else
+            {
+                // Fallback to name search
+                var rawName = SelectedBuffName.Substring(SelectedBuffName.IndexOf(']') + 2);
+                bool success = PlayerRunTimeInfo.Current.PlayerBuffSystem.AddBuff(rawName);
+                Debug.Log($"[BuffDebugger] Add Player Buff '{rawName}': {success}");
+            }
         }
         else
         {
-            Debug.LogWarning("[BuffDebugger] Cannot add buff: Player instance missing or empty key.");
+            Debug.LogWarning("[BuffDebugger] Cannot add buff: PlayerRunTimeInfo missing or empty name.");
         }
     }
 
@@ -167,14 +179,49 @@ public class BuffDebugViewModel
     [Button("Add to Market"), GUIColor(0.5f, 0.8f, 1f)]
     public void AddMarketBuff()
     {
-        if (Player.Instance != null && !string.IsNullOrEmpty(SelectedBuffName))
+        if (PlayerRunTimeInfo.Current?.MarketBuffSystem != null)
         {
-            bool success = Player.Instance.AddMarketBuff(SelectedBuffName);
-            Debug.Log($"[BuffDebugger] Add Market Buff '{SelectedBuffName}': {success}");
+            int buffId = 0;
+            if (int.TryParse(SelectedBuffName.Split(' ')[0].Trim('[', ']'), out buffId))
+            {
+                bool success = PlayerRunTimeInfo.Current.MarketBuffSystem.AddBuffById(buffId);
+                Debug.Log($"[BuffDebugger] Add Market Buff ID {buffId}: {success}");
+            }
+            else
+            {
+                var rawName = SelectedBuffName.Substring(SelectedBuffName.IndexOf(']') + 2);
+                bool success = PlayerRunTimeInfo.Current.MarketBuffSystem.AddBuff(rawName);
+                Debug.Log($"[BuffDebugger] Add Market Buff '{rawName}': {success}");
+            }
         }
         else
         {
-            Debug.LogWarning("[BuffDebugger] Cannot add buff: Player instance missing or empty key.");
+            Debug.LogWarning("[BuffDebugger] Cannot add buff: PlayerRunTimeInfo missing or empty name.");
+        }
+    }
+
+    [HorizontalGroup("AddActions")]
+    [Button("Test Buff Shake", ButtonSizes.Medium), GUIColor(1f, 0.8f, 0.4f)]
+    public void TestBuffShake()
+    {
+        if (int.TryParse(SelectedBuffName.Split(' ')[0].Trim('[', ']'), out int buffId))
+        {
+            GameLogicUI.Instance?.PunchBuffItem(buffId);
+            Debug.Log($"[BuffDebugger] Testing Shake for Buff ID: {buffId}");
+        }
+        else
+        {
+            // Fallback if parsing fails (e.g. if name format changes), try to find ID from name lookup
+            var buff = BuffRegistry.GetAllBuffs().FirstOrDefault(b => b.buffName == SelectedBuffName);
+            if (buff != null)
+            {
+                GameLogicUI.Instance?.PunchBuffItem(buff.id);
+                Debug.Log($"[BuffDebugger] Testing Shake for Buff ID: {buff.id}");
+            }
+            else
+            {
+                Debug.LogWarning("[BuffDebugger] Could not parse Buff ID from selection.");
+            }
         }
     }
 
@@ -183,10 +230,10 @@ public class BuffDebugViewModel
     [Button("Clear All Buffs"), GUIColor(1f, 0.5f, 0.5f)]
     public void ClearAllBuffs()
     {
-        if (Player.Instance != null)
+        if (PlayerRunTimeInfo.Current != null)
         {
-            Player.Instance.ClearPlayerBuffs();
-            Player.Instance.ClearMarketBuffs();
+            PlayerRunTimeInfo.Current.PlayerBuffSystem?.ClearBuff();
+            PlayerRunTimeInfo.Current.MarketBuffSystem?.ClearBuff();
             Debug.Log("[BuffDebugger] All buffs cleared.");
         }
     }
@@ -196,11 +243,11 @@ public class BuffDebugViewModel
 
     [BoxGroup("Player Main Buffs")]
     [ShowInInspector, ListDrawerSettings(IsReadOnly = true, ShowFoldout = true)]
-    public List<BuffInfo> PlayerBuffs => Player.Instance != null ? Player.Instance.PlayerBuffHandler.BuffInfoList.ToList() : new List<BuffInfo>();
+    public List<BuffInfo> PlayerBuffs => PlayerRunTimeInfo.Current?.PlayerBuffSystem?.BuffInfoList.ToList() ?? new List<BuffInfo>();
 
     [BoxGroup("Market Trend Buffs")]
     [ShowInInspector, ListDrawerSettings(IsReadOnly = true, ShowFoldout = true)]
-    public List<BuffInfo> MarketBuffs => Player.Instance != null ? Player.Instance.MarketBuffHandler.BuffInfoList.ToList() : new List<BuffInfo>();
+    public List<BuffInfo> MarketBuffs => PlayerRunTimeInfo.Current?.MarketBuffSystem?.BuffInfoList.ToList() ?? new List<BuffInfo>();
 }
 
 public class AviationSystemDebugViewModel

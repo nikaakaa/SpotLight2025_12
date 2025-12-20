@@ -26,7 +26,7 @@ public class GameLogicUI : MonoBehaviour
     [SerializeField, Tooltip("Addressables 中的 Buff 项预制体名称，留空则动态创建")]
     private string buffItemPrefabName = "";
 
-    private Player boundPlayer;
+    private PlayerRunTimeInfo boundInfo;
     private CityNode currentNode;
     private Coroutine bindCoroutine;
     private Coroutine refreshCoroutine;
@@ -41,6 +41,24 @@ public class GameLogicUI : MonoBehaviour
     void Awake()
     {
         Instance = this;
+
+        // 自动查找未赋值的组件
+        if (moneyText == null)
+        {
+            // 尝试通过名称查找
+            var moneyObj = transform.Find("MoneyText");
+            if (moneyObj == null) moneyObj = transform.Find("Money");
+            if (moneyObj == null) moneyObj = transform.Find("Assets");
+            if (moneyObj != null)
+            {
+                moneyText = moneyObj.GetComponent<TextMeshProUGUI>();
+            }
+
+            if (moneyText == null)
+            {
+                Debug.LogWarning("[GameLogicUI] moneyText 未赋值且未找到！请在 Inspector 中拖入 MoneyText");
+            }
+        }
     }
 
     private void OnEnable()
@@ -62,7 +80,7 @@ public class GameLogicUI : MonoBehaviour
             refreshCoroutine = null;
         }
 
-        UnbindPlayer();
+        UnbindInfo();
     }
 
     private void Update()
@@ -71,7 +89,9 @@ public class GameLogicUI : MonoBehaviour
         if (isSettlementMode) return;
 
         // 实时刷新 UI 数据
-        RefreshMoney(PlayerRunTimeInfo.Current?.Assets ?? 0);
+        // 如果已绑定事件，通常不需要在 Update 中频繁刷新，但为了保险起见可以保留，或者依赖事件驱动
+        // 这里保留刷新逻辑，但使用 boundInfo
+        RefreshMoney(boundInfo?.Assets ?? 0);
         RefreshStatistics();
         RefreshCurrentNodeInfo();
 
@@ -83,35 +103,26 @@ public class GameLogicUI : MonoBehaviour
 
     private IEnumerator BindWhenReady()
     {
-        // 等待 Player 与 PlayerRunTimeInfo 初始化
-        while (Player.Instance == null && PlayerRunTimeInfo.Current == null)
+        // 等待 PlayerRunTimeInfo 初始化
+        while (PlayerRunTimeInfo.Current == null)
         {
             yield return null;
         }
 
-        // 优先绑定 Player（可转发事件、可拿到 BuffHandler）
-        if (Player.Instance != null)
-        {
-            BindPlayer(Player.Instance);
-        }
-        else
-        {
-            // 兜底：只用 PlayerRunTimeInfo 刷新静态 UI
-            RefreshAll();
-        }
+        BindInfo(PlayerRunTimeInfo.Current);
     }
 
-    private void BindPlayer(Player player)
+    private void BindInfo(PlayerRunTimeInfo info)
     {
-        if (player == null) return;
-        if (boundPlayer == player) return;
+        if (info == null) return;
+        if (boundInfo == info) return;
 
-        UnbindPlayer();
-        boundPlayer = player;
+        UnbindInfo();
+        boundInfo = info;
 
-        boundPlayer.OnAssetsChanged += HandleAssetsChanged;
-        boundPlayer.OnRoundStarted += HandleRoundStarted;
-        boundPlayer.OnSettlementCompleted += HandleSettlementCompleted;
+        boundInfo.OnAssetsChanged += HandleAssetsChanged;
+        boundInfo.OnRoundStarted += HandleRoundStarted;
+        boundInfo.OnSettlementCompleted += HandleSettlementCompleted;
 
         RefreshAll();
 
@@ -121,13 +132,13 @@ public class GameLogicUI : MonoBehaviour
         }
     }
 
-    private void UnbindPlayer()
+    private void UnbindInfo()
     {
-        if (boundPlayer == null) return;
-        boundPlayer.OnAssetsChanged -= HandleAssetsChanged;
-        boundPlayer.OnRoundStarted -= HandleRoundStarted;
-        boundPlayer.OnSettlementCompleted -= HandleSettlementCompleted;
-        boundPlayer = null;
+        if (boundInfo == null) return;
+        boundInfo.OnAssetsChanged -= HandleAssetsChanged;
+        boundInfo.OnRoundStarted -= HandleRoundStarted;
+        boundInfo.OnSettlementCompleted -= HandleSettlementCompleted;
+        boundInfo = null;
     }
 
     private IEnumerator RefreshBuffListLoop()
@@ -160,7 +171,8 @@ public class GameLogicUI : MonoBehaviour
 
     public void RefreshAll()
     {
-        RefreshMoney(PlayerRunTimeInfo.Current?.Assets ?? boundPlayer?.Assets ?? 0);
+        Debug.Log($"[GameLogicUI] RefreshAll 被调用");
+        RefreshMoney(PlayerRunTimeInfo.Current?.Assets ?? boundInfo?.Assets ?? 0);
         RefreshStatistics();
         RefreshBuffList();
         RefreshCurrentNodeInfo();
@@ -168,8 +180,13 @@ public class GameLogicUI : MonoBehaviour
 
     private void RefreshMoney(long assets)
     {
-        if (moneyText == null) return;
+        if (moneyText == null)
+        {
+            Debug.LogWarning("[GameLogicUI] moneyText 为空！");
+            return;
+        }
         moneyText.text = $"${assets:N0}";
+        Debug.Log($"[GameLogicUI] 刷新资产显示: ${assets:N0}");
     }
 
     private void RefreshStatistics()
@@ -206,73 +223,52 @@ public class GameLogicUI : MonoBehaviour
         if (buffListScrollView == null) return;
         if (buffListScrollView.content == null) return;
 
-        var player = boundPlayer != null ? boundPlayer : Player.Instance;
-        if (player == null)
+        var playerInfo = PlayerRunTimeInfo.Current;
+        if (playerInfo == null)
         {
             EnsureBuffItemCount(1);
-            buffItemTexts[0].text = "Player 未初始化";
+            buffItemTexts[0].text = "PlayerRunTimeInfo 未初始化";
             return;
         }
 
         var rows = new List<string>();
 
-        // 使用配置的标题文本
+        // 市场趋势 Buff（从 PlayerRunTimeInfo 读取）
         rows.Add(BuffDisplayConfig.MarketBuffTitle);
-        AppendBuffRows(rows, player.MarketBuffHandler, true);
+        if (playerInfo.CurrentMarketBuffIds.Count > 0)
+        {
+            foreach (var buffId in playerInfo.CurrentMarketBuffIds)
+            {
+                string text = BuffDisplayConfig.GetBuffDisplayText(buffId) ?? $"Buff_{buffId}";
+                rows.Add($"  {text}");
+            }
+        }
+        else
+        {
+            rows.Add("  (无)");
+        }
+
         rows.Add(" ");
+
+        // 玩家永久 Buff（从 PlayerRunTimeInfo 读取）
         rows.Add(BuffDisplayConfig.PlayerBuffTitle);
-        AppendBuffRows(rows, player.PlayerBuffHandler, false);
+        if (playerInfo.OwnedPlayerBuffIds.Count > 0)
+        {
+            foreach (var buffId in playerInfo.OwnedPlayerBuffIds)
+            {
+                string text = BuffDisplayConfig.GetBuffDisplayText(buffId) ?? $"Buff_{buffId}";
+                rows.Add($"  {text}");
+            }
+        }
+        else
+        {
+            rows.Add("  (无)");
+        }
 
         EnsureBuffItemCount(rows.Count);
         for (int i = 0; i < rows.Count; i++)
         {
             buffItemTexts[i].text = rows[i];
-        }
-    }
-
-    private static void AppendBuffRows(List<string> rows, BuffHandler handler, bool isMarketBuff)
-    {
-        if (handler == null)
-        {
-            rows.Add("  (无处理器)");
-            return;
-        }
-
-        var list = handler.BuffInfoList;
-        if (list == null || list.Count == 0)
-        {
-            rows.Add("  (无)");
-            return;
-        }
-
-        foreach (var buff in list)
-        {
-            if (buff == null || buff.buffData == null)
-            {
-                rows.Add("  (空Buff)");
-                continue;
-            }
-
-            int buffId = buff.buffData.id;
-
-            // 优先使用 BuffDisplayConfig 配置的显示文本
-            string displayText = BuffDisplayConfig.GetBuffDisplayText(buffId);
-
-            if (!string.IsNullOrEmpty(displayText))
-            {
-                // 使用配置的文本
-                rows.Add($"  {displayText}");
-            }
-            else
-            {
-                // 如果配置中没有，使用 BuffData 的 description 或 buffName
-                string fallbackText = !string.IsNullOrWhiteSpace(buff.buffData.description)
-                    ? buff.buffData.description
-                    : (!string.IsNullOrWhiteSpace(buff.buffData.buffName)
-                        ? buff.buffData.buffName
-                        : $"Buff_{buffId}");
-                rows.Add($"  {fallbackText}");
-            }
         }
     }
 
@@ -434,11 +430,29 @@ public class GameLogicUI : MonoBehaviour
     /// <summary>
     /// 金额数字滚动动画
     /// </summary>
-    public async UniTask AnimateMoneyTo(long target, float duration = 1f)
+    /// <param name="target">目标金额</param>
+    /// <param name="duration">动画时长</param>
+    /// <param name="startValue">起始值（如为 null 则从当前 UI 文本解析）</param>
+    public async UniTask AnimateMoneyTo(long target, float duration = 1f, long? startValue = null)
     {
         if (moneyText == null) return;
 
-        long current = PlayerRunTimeInfo.Current?.Assets ?? 0;
+        // 优先使用传入的起始值，否则尝试从 UI 文本解析当前显示的数值
+        long current;
+        if (startValue.HasValue)
+        {
+            current = startValue.Value;
+        }
+        else
+        {
+            // 从 moneyText.text 解析（格式为 "$1,234"）
+            string text = moneyText.text.Replace("$", "").Replace(",", "");
+            if (!long.TryParse(text, out current))
+            {
+                current = PlayerRunTimeInfo.Current?.Assets ?? 0;
+            }
+        }
+
         var tween = DOTween.To(() => current, x =>
         {
             current = x;

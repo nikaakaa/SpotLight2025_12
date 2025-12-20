@@ -15,11 +15,11 @@ public class ViewRoundBuffState : LeafState<GameProcedureContext>
     {
         Debug.Log($"[{Name}] Enter - 显示回合Buff预览（自动跳过）");
 
-        // 模拟：清空旧的市场 Buff
-        if (Player.Instance != null)
-        {
-            Player.Instance.ClearMarketBuffs();
-        }
+        // 模拟：清空旧的市场 Buff (已在 StartRoundState 中调用 PlayerRunTimeInfo.StartNewRound 处理)
+        // if (PlayerRunTimeInfo.Current != null)
+        // {
+        //     PlayerRunTimeInfo.Current.MarketBuffSystem?.ClearBuff();
+        // }
 
         // TODO: 未来在这里随机生成市场 Buff 并显示预览 UI
         Debug.Log($"[{Name}] (自动化) 跳过 Buff 预览");

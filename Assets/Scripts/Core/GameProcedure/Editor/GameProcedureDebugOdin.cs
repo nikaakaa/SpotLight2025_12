@@ -92,7 +92,7 @@ public class GameProcedureDebugOdin : OdinEditorWindow
     #region 快速事件触发
 
     [TitleGroup("事件触发", "发送事件来触发状态转换")]
-    
+
     [Button("🚀 开始游戏", ButtonSizes.Large), GUIColor(0.2f, 0.9f, 0.4f)]
     [EnableIf("IsPlaying")]
     [PropertyOrder(-1)]
@@ -142,7 +142,7 @@ public class GameProcedureDebugOdin : OdinEditorWindow
     private List<string> GetAvailableTransitions()
     {
         var transitions = new List<string>();
-        if (!EditorApplication.isPlaying || GameProcedure.Instance == null) 
+        if (!EditorApplication.isPlaying || GameProcedure.Instance == null)
             return transitions;
 
         var currentState = CurrentState;
@@ -233,6 +233,306 @@ public class GameProcedureDebugOdin : OdinEditorWindow
     {
         get => GameProcedure.Instance?.Context?.PlayerMoney ?? 0;
         set { if (GameProcedure.Instance?.Context != null) GameProcedure.Instance.Context.PlayerMoney = value; }
+    }
+
+    #endregion
+
+    #region Buff 调试
+
+    [TitleGroup("Buff 系统调试", "查看和管理激活的 Buff")]
+
+    // ========== 系统状态 ==========
+    [BoxGroup("Buff 系统调试/系统状态")]
+    [ShowInInspector, ReadOnly, LabelText("Player.Instance")]
+    [GUIColor("GetPlayerInstanceColor")]
+    public string PlayerInstanceStatus => Player.Instance != null ? "✓ 存在" : "✗ NULL";
+
+    [BoxGroup("Buff 系统调试/系统状态")]
+    [ShowInInspector, ReadOnly, LabelText("PlayerBuffSystem")]
+    public string PlayerBuffSystemStatus => GetBuffSystemStatus(PlayerRunTimeInfo.Current?.PlayerBuffSystem);
+
+    [BoxGroup("Buff 系统调试/系统状态")]
+    [ShowInInspector, ReadOnly, LabelText("MarketBuffSystem")]
+    public string MarketBuffSystemStatus => GetBuffSystemStatus(PlayerRunTimeInfo.Current?.MarketBuffSystem);
+
+    [BoxGroup("Buff 系统调试/系统状态")]
+    [ShowInInspector, ReadOnly, LabelText("BuffRegistry 状态")]
+    public string BuffRegistryStatus => $"已注册 {GetRegisteredBuffCount()} 个 Buff";
+
+    private Color GetPlayerInstanceColor() => Player.Instance != null ? Color.green : Color.red;
+
+    private string GetBuffSystemStatus(BuffSystem system)
+    {
+        if (system == null) return "✗ NULL";
+        return $"✓ 存在 ({system.BuffInfoList?.Count ?? 0} 个 Buff)";
+    }
+
+    private int GetRegisteredBuffCount()
+    {
+        try { return System.Linq.Enumerable.Count(BuffRegistry.GetAllBuffs()); }
+        catch { return 0; }
+    }
+
+    // ========== 激活的 Buff 列表 ==========
+    [BoxGroup("Buff 系统调试/已激活 Buff")]
+    [ShowInInspector, ReadOnly, LabelText("玩家 Buff")]
+    [ListDrawerSettings(ShowFoldout = true, DraggableItems = false)]
+    public List<string> ActivePlayerBuffs => GetActiveBuffList(PlayerRunTimeInfo.Current?.PlayerBuffSystem);
+
+    [BoxGroup("Buff 系统调试/已激活 Buff")]
+    [ShowInInspector, ReadOnly, LabelText("市场 Buff")]
+    [ListDrawerSettings(ShowFoldout = true, DraggableItems = false)]
+    public List<string> ActiveMarketBuffs => GetActiveBuffList(PlayerRunTimeInfo.Current?.MarketBuffSystem);
+
+    private List<string> GetActiveBuffList(BuffSystem system)
+    {
+        var list = new List<string>();
+        if (system?.BuffInfoList == null) return list;
+        foreach (var buff in system.BuffInfoList)
+        {
+            list.Add($"[{buff.buffData.id}] {buff.buffData.buffName}: {buff.buffData.description}");
+        }
+        if (list.Count == 0) list.Add("(无)");
+        return list;
+    }
+
+    // ========== 快速添加 Buff ==========
+    [BoxGroup("Buff 系统调试/快速添加")]
+    [ShowInInspector, LabelText("选择 Buff")]
+    [ValueDropdown("GetAllBuffOptions")]
+    public int SelectedBuffId = 101;
+
+    private IEnumerable<ValueDropdownItem<int>> GetAllBuffOptions()
+    {
+        var options = new List<ValueDropdownItem<int>>();
+
+        // 玩家 Buff
+        options.Add(new ValueDropdownItem<int>("=== 玩家 Buff ===", 0));
+        options.Add(new ValueDropdownItem<int>("[101] lv1收益+3", 101));
+        options.Add(new ValueDropdownItem<int>("[102] lv2收益+8", 102));
+        options.Add(new ValueDropdownItem<int>("[103] lv3收益+15", 103));
+        options.Add(new ValueDropdownItem<int>("[104] lv4收益+25", 104));
+        options.Add(new ValueDropdownItem<int>("[105] lv5收益+35", 105));
+        options.Add(new ValueDropdownItem<int>("[106] 环倍率+0.2", 106));
+        options.Add(new ValueDropdownItem<int>("[107] 单线倍率+0.1", 107));
+        options.Add(new ValueDropdownItem<int>("[108] 放射倍率+0.1", 108));
+
+        // 市场 Buff
+        options.Add(new ValueDropdownItem<int>("=== 市场 Buff ===", 0));
+        options.Add(new ValueDropdownItem<int>("[1] 所有节点收益×0.9", 1));
+        options.Add(new ValueDropdownItem<int>("[2] 所有结构倍率×0.9", 2));
+        options.Add(new ValueDropdownItem<int>("[6] lv1节点收益×0.85", 6));
+        options.Add(new ValueDropdownItem<int>("[20] 小型复苏(lv1-2×1.3)", 20));
+
+        return options;
+    }
+
+    [BoxGroup("Buff 系统调试/快速添加")]
+    [HorizontalGroup("Buff 系统调试/快速添加/Buttons")]
+    [Button("添加到玩家 Buff", ButtonSizes.Medium), GUIColor(0.4f, 0.9f, 0.4f)]
+    [EnableIf("IsPlaying")]
+    private void AddToPlayerBuff()
+    {
+        if (SelectedBuffId <= 0) { Debug.LogWarning("请选择有效的 Buff"); return; }
+        var system = PlayerRunTimeInfo.Current?.PlayerBuffSystem;
+        if (system == null) { Debug.LogError("PlayerBuffSystem 不存在"); return; }
+
+        bool result = system.AddBuffById(SelectedBuffId);
+        Debug.Log($"[BuffDebug] 添加玩家 Buff ID={SelectedBuffId}: {(result ? "成功" : "失败")}");
+    }
+
+    [HorizontalGroup("Buff 系统调试/快速添加/Buttons")]
+    [Button("添加到市场 Buff", ButtonSizes.Medium), GUIColor(0.4f, 0.7f, 1f)]
+    [EnableIf("IsPlaying")]
+    private void AddToMarketBuff()
+    {
+        if (SelectedBuffId <= 0) { Debug.LogWarning("请选择有效的 Buff"); return; }
+        var system = PlayerRunTimeInfo.Current?.MarketBuffSystem;
+        if (system == null) { Debug.LogError("MarketBuffSystem 不存在"); return; }
+
+        bool result = system.AddBuffById(SelectedBuffId);
+        Debug.Log($"[BuffDebug] 添加市场 Buff ID={SelectedBuffId}: {(result ? "成功" : "失败")}");
+    }
+
+    // ========== 清空 Buff ==========
+    [BoxGroup("Buff 系统调试/管理")]
+    [HorizontalGroup("Buff 系统调试/管理/ClearRow")]
+    [Button("清空玩家 Buff", ButtonSizes.Medium), GUIColor(1f, 0.6f, 0.4f)]
+    [EnableIf("IsPlaying")]
+    private void ClearPlayerBuffs()
+    {
+        PlayerRunTimeInfo.Current?.PlayerBuffSystem?.ClearBuff();
+        Debug.Log("[BuffDebug] 已清空玩家 Buff");
+    }
+
+    [HorizontalGroup("Buff 系统调试/管理/ClearRow")]
+    [Button("清空市场 Buff", ButtonSizes.Medium), GUIColor(1f, 0.6f, 0.4f)]
+    [EnableIf("IsPlaying")]
+    private void ClearMarketBuffs()
+    {
+        PlayerRunTimeInfo.Current?.MarketBuffSystem?.ClearBuff();
+        Debug.Log("[BuffDebug] 已清空市场 Buff");
+    }
+
+    // ========== 批量添加 Buff ==========
+    [BoxGroup("Buff 系统调试/管理")]
+    [HorizontalGroup("Buff 系统调试/管理/AddAllRow")]
+    [Button("🎁 添加所有玩家 Buff", ButtonSizes.Large), GUIColor(0.3f, 1f, 0.5f)]
+    [EnableIf("IsPlaying")]
+    private void AddAllPlayerBuffs()
+    {
+        var system = PlayerRunTimeInfo.Current?.PlayerBuffSystem;
+        if (system == null)
+        {
+            Debug.LogError("PlayerBuffSystem 不存在");
+            return;
+        }
+
+        // 玩家 Buff ID: 101-112
+        int[] playerBuffIds = { 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112 };
+        int successCount = 0;
+
+        foreach (var id in playerBuffIds)
+        {
+            if (system.AddBuffById(id))
+                successCount++;
+        }
+
+        Debug.Log($"[BuffDebug] 批量添加玩家 Buff: {successCount}/{playerBuffIds.Length} 成功");
+    }
+
+    [HorizontalGroup("Buff 系统调试/管理/AddAllRow")]
+    [Button("🌍 添加所有市场 Buff", ButtonSizes.Large), GUIColor(0.3f, 0.7f, 1f)]
+    [EnableIf("IsPlaying")]
+    private void AddAllMarketBuffs()
+    {
+        var system = PlayerRunTimeInfo.Current?.MarketBuffSystem;
+        if (system == null)
+        {
+            Debug.LogError("MarketBuffSystem 不存在");
+            return;
+        }
+
+        // 市场 Buff ID: 1-21
+        int successCount = 0;
+        for (int id = 1; id <= 21; id++)
+        {
+            if (system.AddBuffById(id))
+                successCount++;
+        }
+
+        Debug.Log($"[BuffDebug] 批量添加市场 Buff: {successCount}/21 成功");
+    }
+
+    [BoxGroup("Buff 系统调试/管理")]
+    [Button("🔥 添加所有 Buff (玩家+市场)", ButtonSizes.Large), GUIColor(1f, 0.8f, 0.2f)]
+    [EnableIf("IsPlaying")]
+    private void AddAllBuffs()
+    {
+        AddAllPlayerBuffs();
+        AddAllMarketBuffs();
+        Debug.Log("[BuffDebug] 已添加所有 Buff (玩家+市场)");
+    }
+
+    // ========== 调试工具 ==========
+    [BoxGroup("Buff 系统调试/调试工具")]
+    [Button("🔍 检查 Buff 系统状态", ButtonSizes.Large), GUIColor(0.8f, 0.8f, 1f)]
+    [EnableIf("IsPlaying")]
+    private void DiagnoseBuffSystem()
+    {
+        Debug.Log("========== Buff 系统诊断 ==========");
+
+        // 1. BuffRegistry 检查
+        BuffRegistry.Initialize();
+        int regCount = GetRegisteredBuffCount();
+        Debug.Log($"[诊断] BuffRegistry: {regCount} 个 Buff 已注册");
+
+        // 2. Player.Instance 检查
+        if (Player.Instance == null)
+        {
+            Debug.LogError("[诊断] ✗ Player.Instance 为 NULL！");
+            return;
+        }
+        Debug.Log("[诊断] ✓ Player.Instance 存在");
+
+        // 3. BuffSystem 检查
+        var playerSystem = PlayerRunTimeInfo.Current?.PlayerBuffSystem;
+        var marketSystem = PlayerRunTimeInfo.Current?.MarketBuffSystem;
+
+        Debug.Log($"[诊断] PlayerBuffSystem: {(playerSystem != null ? "存在" : "NULL")}");
+        Debug.Log($"[诊断] MarketBuffSystem: {(marketSystem != null ? "存在" : "NULL")}");
+
+        // 4. 激活的 Buff 检查
+        if (playerSystem != null)
+        {
+            Debug.Log($"[诊断] 玩家 Buff 数量: {playerSystem.BuffInfoList?.Count ?? 0}");
+            foreach (var buff in playerSystem.BuffInfoList)
+            {
+                Debug.Log($"[诊断]   - ID={buff.buffData.id}, Name={buff.buffData.buffName}");
+                Debug.Log($"[诊断]     Effects: {buff.buffData.Effects.Count} 个回调类型");
+                foreach (var kvp in buff.buffData.Effects)
+                {
+                    Debug.Log($"[诊断]       - {kvp.Key}: {(kvp.Value != null ? "已注册" : "NULL")}");
+                }
+            }
+        }
+
+        // 5. PlayerRunTimeInfo 检查
+        var playerInfo = PlayerRunTimeInfo.Current;
+        if (playerInfo != null)
+        {
+            Debug.Log($"[诊断] PlayerRunTimeInfo.OwnedPlayerBuffIds: {playerInfo.OwnedPlayerBuffIds.Count} 个");
+            foreach (var id in playerInfo.OwnedPlayerBuffIds)
+            {
+                Debug.Log($"[诊断]   - ID={id}");
+            }
+        }
+
+        Debug.Log("========== 诊断完成 ==========");
+    }
+
+    [BoxGroup("Buff 系统调试/调试工具")]
+    [Button("🔄 初始化 BuffRegistry", ButtonSizes.Medium), GUIColor(0.6f, 0.8f, 0.6f)]
+    private void InitBuffRegistry()
+    {
+        BuffRegistry.Initialize();
+        Debug.Log("[BuffDebug] BuffRegistry 已初始化");
+    }
+
+    [BoxGroup("Buff 系统调试/调试工具")]
+    [Button("📊 测试 Buff 效果触发", ButtonSizes.Medium), GUIColor(0.8f, 0.6f, 1f)]
+    [EnableIf("IsPlaying")]
+    private void TestBuffTrigger()
+    {
+        Debug.Log("========== 测试 Buff 触发 ==========");
+
+        var modifier = new IncomeModifier();
+        Debug.Log($"[测试] 初始 modifier: FlatBonus={modifier.FlatBonus}, Multiplier={modifier.Multiplier}");
+
+        // 模拟触发 lv1 节点收益计算
+        if (PlayerRunTimeInfo.Current != null)
+        {
+            // 使用 IGameplayBuffSystem 接口触发
+            PlayerRunTimeInfo.Current.TriggerNodeIncomeBuffs(1, modifier);
+            Debug.Log($"[测试] 触发后 modifier: FlatBonus={modifier.FlatBonus}, Multiplier={modifier.Multiplier}");
+
+            if (modifier.FlatBonus == 0 && modifier.Multiplier == 1f)
+            {
+                Debug.LogWarning("[测试] Buff 未生效！检查 PlayerBuffSystem 中是否有激活的 Buff");
+            }
+            else
+            {
+                Debug.Log("[测试] ✓ Buff 触发成功！");
+                if (modifier.AppliedBuffIds.Count > 0)
+                {
+                    Debug.Log($"[测试] 生效 Buff ID: {string.Join(", ", modifier.AppliedBuffIds)}");
+                }
+            }
+        }
+        else
+        {
+            Debug.LogError("[测试] PlayerRunTimeInfo.Current 为 NULL");
+        }
     }
 
     #endregion

@@ -58,6 +58,9 @@ public class IncomeModifier
         return (baseValue + FlatBonus) * Multiplier;
     }
 
+    /// <summary>已应用的 Buff ID 列表（用于 UI 表现）</summary>
+    public List<int> AppliedBuffIds { get; } = new List<int>();
+
     /// <summary>
     /// 重置修正器
     /// </summary>
@@ -65,6 +68,7 @@ public class IncomeModifier
     {
         FlatBonus = 0;
         Multiplier = 1f;
+        AppliedBuffIds.Clear();
     }
 
     /// <summary>
@@ -74,6 +78,7 @@ public class IncomeModifier
     {
         FlatBonus += other.FlatBonus;
         Multiplier *= other.Multiplier;
+        AppliedBuffIds.AddRange(other.AppliedBuffIds);
     }
 
     public override string ToString()
@@ -104,6 +109,9 @@ public class MultiplierModifier
         return (baseValue + FlatBonus) * Multiplier;
     }
 
+    /// <summary>已应用的 Buff ID 列表（用于 UI 表现）</summary>
+    public List<int> AppliedBuffIds { get; } = new List<int>();
+
     /// <summary>
     /// 重置修正器
     /// </summary>
@@ -111,6 +119,7 @@ public class MultiplierModifier
     {
         FlatBonus = 0f;
         Multiplier = 1f;
+        AppliedBuffIds.Clear();
     }
 
     /// <summary>
@@ -120,6 +129,7 @@ public class MultiplierModifier
     {
         FlatBonus += other.FlatBonus;
         Multiplier *= other.Multiplier;
+        AppliedBuffIds.AddRange(other.AppliedBuffIds);
     }
 
     public override string ToString()

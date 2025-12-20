@@ -15,7 +15,7 @@ using UnityEngine;
 /// - GameLogicState 中注册使用
 /// - 退出 GameLogicState 时自动清理
 /// </summary>
-public class PlayerRunTimeInfo
+public class PlayerRunTimeInfo : IGameplayBuffSystem
 {
     // ========== 静态访问（运行时实例） ==========
 
@@ -80,7 +80,17 @@ public class PlayerRunTimeInfo
     // ========== Buff 相关 ==========
 
     /// <summary>
-    /// 玩家永久 Buff ID 列表（从商店购买的升级Buff）
+    /// 玩家永久 Buff 系统
+    /// </summary>
+    public BuffSystem PlayerBuffSystem { get; private set; }
+
+    /// <summary>
+    /// 市场趋势 Buff 系统
+    /// </summary>
+    public BuffSystem MarketBuffSystem { get; private set; }
+
+    /// <summary>
+    /// 玩家永久 Buff ID 列表（用于持久化/存档）
     /// </summary>
     public List<int> OwnedPlayerBuffIds { get; private set; } = new List<int>();
 
@@ -139,6 +149,7 @@ public class PlayerRunTimeInfo
         IsUpgradeBlocked = false;
         IsBuildBlocked = false;
         CurrentMarketBuffIds.Clear();
+        MarketBuffSystem.ClearBuff(); // 清空市场 Buff
 
         OnRoundStarted?.Invoke(CurrentRound);
         Debug.Log($"[PlayerRunTimeInfo] 第 {CurrentRound} 回合开始");
@@ -203,6 +214,7 @@ public class PlayerRunTimeInfo
 
         Assets -= cost;
         OwnedPlayerBuffIds.Add(buffId);
+        PlayerBuffSystem.AddBuffById(buffId); // 添加到运行时系统
         Debug.Log($"[PlayerRunTimeInfo] 购买 Buff {buffId}，花费 {cost}");
         return true;
     }
@@ -214,6 +226,12 @@ public class PlayerRunTimeInfo
     {
         CurrentMarketBuffIds.Clear();
         CurrentMarketBuffIds.AddRange(buffIds);
+
+        MarketBuffSystem.ClearBuff();
+        foreach (var id in buffIds)
+        {
+            MarketBuffSystem.AddBuffById(id);
+        }
     }
 
     /// <summary>
@@ -258,6 +276,11 @@ public class PlayerRunTimeInfo
         IsBuildBlocked = false;
         OwnedPlayerBuffIds.Clear();
         CurrentMarketBuffIds.Clear();
+
+        // 初始化或重置 Buff 系统
+        PlayerBuffSystem = new BuffSystem(null);
+        MarketBuffSystem = new BuffSystem(null);
+
         TotalIncomeEarned = 0;
         TotalCostPaid = 0;
         HighestRoundIncome = 0;
@@ -266,5 +289,37 @@ public class PlayerRunTimeInfo
         LastSettlementResult?.Clear();
 
         Debug.Log("[PlayerRunTimeInfo] 玩家运行时数据已重置");
+    }
+
+    // ========== IGameplayBuffSystem 实现 ==========
+
+    public void TriggerNodeIncomeBuffs(int nodeLevel, IncomeModifier modifier)
+    {
+        PlayerBuffSystem?.TriggerCustom(E_BuffCallBackType.OnCalculateNodeBaseIncome, nodeLevel, modifier);
+        MarketBuffSystem?.TriggerCustom(E_BuffCallBackType.OnCalculateNodeBaseIncome, nodeLevel, modifier);
+    }
+
+    public void TriggerStructureMultiplierBuffs(E_StructureType type, MultiplierModifier modifier)
+    {
+        PlayerBuffSystem?.TriggerCustom(E_BuffCallBackType.OnCalculateStructureMultiplier, type, modifier);
+        MarketBuffSystem?.TriggerCustom(E_BuffCallBackType.OnCalculateStructureMultiplier, type, modifier);
+    }
+
+    public void TriggerNodeCostBuffs(int nodeLevel, IncomeModifier modifier)
+    {
+        PlayerBuffSystem?.TriggerCustom(E_BuffCallBackType.OnCalculateNodeCost, nodeLevel, modifier);
+        MarketBuffSystem?.TriggerCustom(E_BuffCallBackType.OnCalculateNodeCost, nodeLevel, modifier);
+    }
+
+    public void TriggerEdgeCostBuffs(int length, IncomeModifier modifier)
+    {
+        PlayerBuffSystem?.TriggerCustom(E_BuffCallBackType.OnCalculateEdgeCost, length, modifier);
+        MarketBuffSystem?.TriggerCustom(E_BuffCallBackType.OnCalculateEdgeCost, length, modifier);
+    }
+
+    public void TriggerSettlementCompleteBuffs(SettlementResult result)
+    {
+        PlayerBuffSystem?.TriggerCustom(E_BuffCallBackType.OnSettlementComplete, result);
+        MarketBuffSystem?.TriggerCustom(E_BuffCallBackType.OnSettlementComplete, result);
     }
 }
