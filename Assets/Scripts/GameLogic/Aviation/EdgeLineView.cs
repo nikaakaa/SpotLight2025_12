@@ -64,6 +64,7 @@ public class EdgeLineView : MonoBehaviour
         lineRenderer.startColor = lineColor;
         lineRenderer.endColor = lineColor;
         lineRenderer.useWorldSpace = true;
+        lineRenderer.sortingOrder = RenderLayers.AIRLINE;
     }
 
     /// <summary>

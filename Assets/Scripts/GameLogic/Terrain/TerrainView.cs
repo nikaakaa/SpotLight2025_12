@@ -1,27 +1,30 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 地形可视化组件
-/// 将地形数据渲染为六边形网格
-/// 不需要预制体，程序化生成六边形 Mesh
+/// 地形可视化组件（优化版）
+/// 使用合并 Mesh 方式渲染，按地形类型分组
+/// 大幅减少 Draw Call，支持大地图（30000+ 格子）
 /// </summary>
 public class TerrainView : MonoBehaviour
 {
-    [Header("预制体（可选）")]
-    [Tooltip("如果不设置，会自动生成六边形 Mesh")]
-    [SerializeField] private GameObject hexTilePrefab;
-
     [Header("设置")]
-    [SerializeField] private float tileZOffset = 0.5f; // 地形瓦片 Z 偏移（放在背景层）
-    [SerializeField] private bool useHeightForY = false; // 是否将高度映射到 Y 轴
-    [SerializeField] private float hexScale = 0.95f; // 六边形缩放（小于1会留出间隙）
+    [SerializeField] private float tileZOffset = 0.5f;
+    [SerializeField] private float hexScale = 0.95f;
+
+    [Header("性能")]
+    [Tooltip("每个 Mesh 最大顶点数（Unity 限制 65535）")]
+    [SerializeField] private int maxVerticesPerMesh = 60000;
 
     private Transform tilesParent;
-    private static Mesh cachedHexMesh; // 缓存六边形 Mesh（所有瓦片共用）
-    private static Material cachedMaterial; // 缓存材质
+    private List<GameObject> meshObjects = new List<GameObject>();
+
+    // 缓存的六边形顶点和三角形模板
+    private Vector3[] hexVertices;
+    private int[] hexTriangles;
 
     /// <summary>
-    /// 根据 TerrainSystem 生成视图
+    /// 根据 TerrainSystem 生成视图（合并 Mesh 版）
     /// </summary>
     public void GenerateView(TerrainSystem terrainSystem)
     {
@@ -33,49 +36,47 @@ public class TerrainView : MonoBehaviour
             return;
         }
 
-        // 确保六边形 Mesh 已创建
-        EnsureHexMesh();
+        // 初始化六边形模板
+        InitHexTemplate();
 
         // 创建父物体
         tilesParent = new GameObject("TerrainTiles").transform;
         tilesParent.SetParent(transform);
         tilesParent.localPosition = Vector3.zero;
 
+        // 按地形类型分组
+        var cellsByType = new Dictionary<TerrainType, List<(HexCoord coord, TerrainCell cell)>>();
+
         foreach (var coord in terrainSystem.terrainGrid.AllCoords)
         {
             var cell = terrainSystem.GetTerrainAt(coord);
             if (cell == null) continue;
 
-            CreateTile(coord, cell);
+            if (!cellsByType.ContainsKey(cell.type))
+            {
+                cellsByType[cell.type] = new List<(HexCoord, TerrainCell)>();
+            }
+            cellsByType[cell.type].Add((coord, cell));
         }
 
-        Debug.Log($"[TerrainView] 生成了 {terrainSystem.terrainGrid.Count} 个地形瓦片");
+        // 为每种地形类型创建合并的 Mesh
+        int totalTiles = 0;
+        foreach (var kvp in cellsByType)
+        {
+            CreateMergedMeshForType(kvp.Key, kvp.Value);
+            totalTiles += kvp.Value.Count;
+        }
+
+        Debug.Log($"[TerrainView] 生成了 {totalTiles} 个地形瓦片，合并为 {meshObjects.Count} 个 Mesh");
     }
 
     /// <summary>
-    /// 确保六边形 Mesh 已创建
+    /// 初始化六边形顶点和三角形模板
     /// </summary>
-    private void EnsureHexMesh()
+    private void InitHexTemplate()
     {
-        if (cachedHexMesh != null) return;
-
-        cachedHexMesh = CreateHexMesh();
-
-        // 创建默认材质
-        cachedMaterial = new Material(Shader.Find("Sprites/Default"));
-    }
-
-    /// <summary>
-    /// 创建六边形 Mesh
-    /// </summary>
-    private Mesh CreateHexMesh()
-    {
-        Mesh mesh = new Mesh();
-        mesh.name = "HexTileMesh";
-
-        // 获取六边形的6个顶点 + 中心点
-        Vector3[] vertices = new Vector3[7];
-        vertices[0] = Vector3.zero; // 中心点
+        hexVertices = new Vector3[7];
+        hexVertices[0] = Vector3.zero;
 
         float outerRadius = HexMetrics.OuterRadius * hexScale;
         bool isPointyTop = HexMetrics.IsPointyTop;
@@ -85,112 +86,114 @@ public class TerrainView : MonoBehaviour
             float angle;
             if (isPointyTop)
             {
-                // Pointy-top: 从30度开始
                 angle = (60f * i + 30f) * Mathf.Deg2Rad;
             }
             else
             {
-                // Flat-top: 从0度开始
                 angle = (60f * i) * Mathf.Deg2Rad;
             }
 
-            vertices[i + 1] = new Vector3(
+            hexVertices[i + 1] = new Vector3(
                 outerRadius * Mathf.Cos(angle),
                 outerRadius * Mathf.Sin(angle),
                 0
             );
         }
 
-        // 三角形索引（6个三角形，从中心到每条边）
-        // 绕序反转让法线朝向 Z 轴负方向（朝向摄像机）
-        int[] triangles = new int[18];
+        // 三角形（法线朝向 Z 轴负方向）
+        hexTriangles = new int[18];
         for (int i = 0; i < 6; i++)
         {
-            triangles[i * 3] = 0;           // 中心点
-            triangles[i * 3 + 1] = (i < 5) ? i + 2 : 1; // 下一个顶点（循环）
-            triangles[i * 3 + 2] = i + 1;   // 当前顶点
+            hexTriangles[i * 3] = 0;
+            hexTriangles[i * 3 + 1] = (i < 5) ? i + 2 : 1;
+            hexTriangles[i * 3 + 2] = i + 1;
+        }
+    }
+
+    /// <summary>
+    /// 为一种地形类型创建合并的 Mesh
+    /// </summary>
+    private void CreateMergedMeshForType(TerrainType type, List<(HexCoord coord, TerrainCell cell)> cells)
+    {
+        Color color = type.GetColor();
+        int verticesPerHex = 7;
+        int trianglesPerHex = 18;
+        int maxHexesPerMesh = maxVerticesPerMesh / verticesPerHex;
+
+        // 分批创建 Mesh（防止超过 65535 顶点限制）
+        int batchCount = 0;
+        for (int start = 0; start < cells.Count; start += maxHexesPerMesh)
+        {
+            int count = Mathf.Min(maxHexesPerMesh, cells.Count - start);
+            CreateSingleMergedMesh(type, cells, start, count, color, batchCount);
+            batchCount++;
+        }
+    }
+
+    /// <summary>
+    /// 创建单个合并的 Mesh
+    /// </summary>
+    private void CreateSingleMergedMesh(TerrainType type, List<(HexCoord coord, TerrainCell cell)> cells,
+        int startIndex, int count, Color color, int batchIndex)
+    {
+        int verticesPerHex = 7;
+        int trianglesPerHex = 18;
+
+        Vector3[] vertices = new Vector3[count * verticesPerHex];
+        int[] triangles = new int[count * trianglesPerHex];
+        Color[] colors = new Color[count * verticesPerHex];
+
+        for (int i = 0; i < count; i++)
+        {
+            var (coord, cell) = cells[startIndex + i];
+            Vector3 worldPos = HexConverter2D.HexToWorld(coord);
+            worldPos.z = tileZOffset;
+
+            int vertexOffset = i * verticesPerHex;
+            int triangleOffset = i * trianglesPerHex;
+
+            // 复制顶点（偏移到世界位置）
+            for (int v = 0; v < verticesPerHex; v++)
+            {
+                vertices[vertexOffset + v] = hexVertices[v] + worldPos;
+                colors[vertexOffset + v] = color;
+            }
+
+            // 复制三角形（调整索引偏移）
+            for (int t = 0; t < trianglesPerHex; t++)
+            {
+                triangles[triangleOffset + t] = hexTriangles[t] + vertexOffset;
+            }
         }
 
-
+        // 创建 Mesh
+        Mesh mesh = new Mesh();
+        mesh.name = $"TerrainMesh_{type}_{batchIndex}";
         mesh.vertices = vertices;
         mesh.triangles = triangles;
+        mesh.colors = colors;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
 
-        return mesh;
-    }
+        // 创建 GameObject
+        GameObject meshObj = new GameObject($"Terrain_{type}_{batchIndex}");
+        meshObj.transform.SetParent(tilesParent);
+        meshObj.transform.localPosition = Vector3.zero;
 
-    /// <summary>
-    /// 创建单个地形瓦片
-    /// </summary>
-    private void CreateTile(HexCoord coord, TerrainCell cell)
-    {
-        Vector3 worldPos = HexConverter2D.HexToWorld(coord);
+        MeshFilter meshFilter = meshObj.AddComponent<MeshFilter>();
+        MeshRenderer meshRenderer = meshObj.AddComponent<MeshRenderer>();
 
-        // 如果使用高度作为 Y 轴
-        if (useHeightForY)
-        {
-            worldPos.y = cell.height * 2f; // 缩放高度
-        }
-        worldPos.z = tileZOffset; // 放在背景层
+        meshFilter.mesh = mesh;
 
-        GameObject tile;
-        if (hexTilePrefab != null)
-        {
-            tile = Instantiate(hexTilePrefab, worldPos, Quaternion.identity, tilesParent);
-        }
-        else
-        {
-            // 程序化创建六边形瓦片
-            tile = CreateHexTile(worldPos, cell);
-        }
-
-        tile.name = $"Tile_{coord.q}_{coord.r}";
-
-        // 设置颜色
-        SetTileColor(tile, cell.type.GetColor());
-    }
-
-    /// <summary>
-    /// 创建程序化六边形瓦片
-    /// </summary>
-    private GameObject CreateHexTile(Vector3 position, TerrainCell cell)
-    {
-        GameObject tile = new GameObject();
-        tile.transform.SetParent(tilesParent);
-        tile.transform.position = position;
-
-        // 添加 MeshFilter 和 MeshRenderer
-        MeshFilter meshFilter = tile.AddComponent<MeshFilter>();
-        MeshRenderer meshRenderer = tile.AddComponent<MeshRenderer>();
-
-        meshFilter.sharedMesh = cachedHexMesh;
-
-        // 每个瓦片需要独立的材质实例（因为颜色不同）
-        Material mat = new Material(cachedMaterial);
-        mat.color = cell.type.GetColor();
+        // 使用顶点颜色的材质
+        Material mat = new Material(Shader.Find("Sprites/Default"));
+        mat.color = color;
         meshRenderer.material = mat;
 
-        return tile;
-    }
+        // 设置渲染层级 - 地形在最下层
+        meshRenderer.sortingOrder = RenderLayers.TERRAIN;
 
-    /// <summary>
-    /// 设置瓦片颜色
-    /// </summary>
-    private void SetTileColor(GameObject tile, Color color)
-    {
-        var spriteRenderer = tile.GetComponent<SpriteRenderer>();
-        if (spriteRenderer != null)
-        {
-            spriteRenderer.color = color;
-            return;
-        }
-
-        var meshRenderer = tile.GetComponent<MeshRenderer>();
-        if (meshRenderer != null && meshRenderer.material != null)
-        {
-            meshRenderer.material.color = color;
-        }
+        meshObjects.Add(meshObj);
     }
 
     /// <summary>
@@ -203,21 +206,7 @@ public class TerrainView : MonoBehaviour
             Destroy(tilesParent.gameObject);
             tilesParent = null;
         }
-    }
-
-    /// <summary>
-    /// 更新单个瓦片颜色
-    /// </summary>
-    public void UpdateTileColor(HexCoord coord, Color color)
-    {
-        if (tilesParent == null) return;
-
-        var tileName = $"Tile_{coord.q}_{coord.r}";
-        var tileTransform = tilesParent.Find(tileName);
-        if (tileTransform != null)
-        {
-            SetTileColor(tileTransform.gameObject, color);
-        }
+        meshObjects.Clear();
     }
 
     /// <summary>
@@ -231,4 +220,5 @@ public class TerrainView : MonoBehaviour
         return view;
     }
 }
+
 

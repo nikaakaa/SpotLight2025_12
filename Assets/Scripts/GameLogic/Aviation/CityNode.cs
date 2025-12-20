@@ -24,6 +24,10 @@ public class CityNode : MonoBehaviour
     {
         if (spriteRenderer == null)
             spriteRenderer = GetComponent<SpriteRenderer>();
+
+        // 设置渲染层级 - 城市节点在最上层
+        if (spriteRenderer != null)
+            spriteRenderer.sortingOrder = RenderLayers.CITY;
     }
 
     void Start()

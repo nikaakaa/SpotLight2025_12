@@ -1,0 +1,178 @@
+using System.Collections.Generic;
+
+/// <summary>
+/// 游戏配置中心 - 替代 Luban 的静态配置类
+/// 48 小时极限开发专用，快速易用
+/// </summary>
+public static class GameConfig
+{
+    // ========== 地图配置 ==========
+
+    /// <summary>
+    /// 地图半径（六边形格子数）
+    /// </summary>
+    public const int MAP_RADIUS = 200;
+
+    /// <summary>
+    /// 地形种子（-1 = 随机）
+    /// </summary>
+    public const int TERRAIN_SEED = -1;
+
+    // ========== 玩家初始值 ==========
+
+    /// <summary>
+    /// 初始资产
+    /// </summary>
+    public const long INITIAL_ASSETS = 1000;
+
+    // ========== 城市配置 ==========
+
+    /// <summary>
+    /// 城市最小间距（六边形格子数）
+    /// </summary>
+    public const int CITY_MIN_DISTANCE = 3;
+
+    /// <summary>
+    /// 城市节点预制体地址（Addressables）
+    /// </summary>
+    public const string CITY_NODE_PREFAB = "CityNode";
+
+    // ========== 节点配置（替代 Luban TbNode） ==========
+
+    /// <summary>
+    /// 节点配置数据（替代 cfg.Node）
+    /// </summary>
+    public class NodeConfig
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string NodeLevel { get; set; }
+        public int NodeIncome { get; set; }
+        public int NodeCost { get; set; }
+
+        public NodeConfig(int id, string name, string nodeLevel, int nodeIncome, int nodeCost)
+        {
+            Id = id;
+            Name = name;
+            NodeLevel = nodeLevel;
+            NodeIncome = nodeIncome;
+            NodeCost = nodeCost;
+        }
+    }
+
+    /// <summary>
+    /// 所有节点配置列表
+    /// </summary>
+    public static readonly List<NodeConfig> NodeConfigs = new List<NodeConfig>
+    {
+        new NodeConfig(1001, "小型机场", "1级", 1, 200),
+        new NodeConfig(1002, "中型机场", "2级", 2, 500),
+        new NodeConfig(1003, "大型机场", "3级", 3, 1000),
+        new NodeConfig(1004, "国际机场", "4级", 4, 2000),
+        new NodeConfig(1005, "枢纽机场", "5级", 5, 3000),
+    };
+
+    /// <summary>
+    /// 节点配置字典（按 ID 索引，运行时自动构建）
+    /// </summary>
+    private static Dictionary<int, NodeConfig> nodeConfigDict;
+
+    /// <summary>
+    /// 获取节点配置（按 ID）
+    /// </summary>
+    public static NodeConfig GetNodeConfig(int id)
+    {
+        // 懒加载字典
+        if (nodeConfigDict == null)
+        {
+            nodeConfigDict = new Dictionary<int, NodeConfig>();
+            foreach (var config in NodeConfigs)
+            {
+                nodeConfigDict[config.Id] = config;
+            }
+        }
+
+        nodeConfigDict.TryGetValue(id, out var result);
+        return result;
+    }
+
+    /// <summary>
+    /// 获取随机节点配置 ID
+    /// </summary>
+    public static int GetRandomNodeConfigId()
+    {
+        return NodeConfigs[UnityEngine.Random.Range(0, NodeConfigs.Count)].Id;
+    }
+
+    // ========== 地形寻路配置 ==========
+
+    /// <summary>
+    /// 地形移动成本配置（数据驱动，可调整路径优先级）
+    /// 值越小越优先通过，0 = 不可通过
+    /// </summary>
+    public static class TerrainCosts
+    {
+        // 基础移动成本（A* 寻路权重）
+        public static float DeepWater = 0f;       // 不可通过
+        public static float ShallowWater = 3.0f;  // 水上成本高
+        public static float Coast = 1.2f;         // 海岸
+        public static float Plain = 1.0f;         // 平原（基准）
+        public static float Hill = 1.5f;          // 丘陵
+        public static float Mountain = 2.5f;      // 山地
+        public static float HighMountain = 0f;    // 不可通过
+
+        // 建造成本倍率（影响航线建造费用）
+        public static float BuildDeepWater = 0f;
+        public static float BuildShallowWater = 1.5f;
+        public static float BuildCoast = 1.2f;
+        public static float BuildPlain = 1.0f;
+        public static float BuildHill = 1.3f;
+        public static float BuildMountain = 2.0f;
+        public static float BuildHighMountain = 0f;
+    }
+
+    /// <summary>
+    /// 获取地形移动成本（用于 A* 寻路）
+    /// </summary>
+    public static float GetTerrainMoveCost(TerrainType type)
+    {
+        return type switch
+        {
+            TerrainType.DeepWater => TerrainCosts.DeepWater,
+            TerrainType.ShallowWater => TerrainCosts.ShallowWater,
+            TerrainType.Coast => TerrainCosts.Coast,
+            TerrainType.Plain => TerrainCosts.Plain,
+            TerrainType.Hill => TerrainCosts.Hill,
+            TerrainType.Mountain => TerrainCosts.Mountain,
+            TerrainType.HighMountain => TerrainCosts.HighMountain,
+            _ => 1.0f
+        };
+    }
+
+    /// <summary>
+    /// 获取地形建造成本倍率
+    /// </summary>
+    public static float GetTerrainBuildCost(TerrainType type)
+    {
+        return type switch
+        {
+            TerrainType.DeepWater => TerrainCosts.BuildDeepWater,
+            TerrainType.ShallowWater => TerrainCosts.BuildShallowWater,
+            TerrainType.Coast => TerrainCosts.BuildCoast,
+            TerrainType.Plain => TerrainCosts.BuildPlain,
+            TerrainType.Hill => TerrainCosts.BuildHill,
+            TerrainType.Mountain => TerrainCosts.BuildMountain,
+            TerrainType.HighMountain => TerrainCosts.BuildHighMountain,
+            _ => 1.0f
+        };
+    }
+
+    /// <summary>
+    /// 地形是否可通过（移动成本 > 0）
+    /// </summary>
+    public static bool IsTerrainPassable(TerrainType type)
+    {
+        return GetTerrainMoveCost(type) > 0f;
+    }
+}
+

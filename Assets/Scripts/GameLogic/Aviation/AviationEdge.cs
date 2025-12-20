@@ -40,7 +40,6 @@ public class AviationEdge
 
         // 使用 A* 算法计算最优路径
         var system = AviationSystem.Instance;
-        var terrain = TerrainSystem.Instance;
 
         if (system != null)
         {
@@ -57,17 +56,7 @@ public class AviationEdge
                 }
             }
 
-            // 将不可通过的地形加入障碍物
-            if (terrain != null)
-            {
-                foreach (var coord in terrain.terrainGrid.AllCoords)
-                {
-                    if (!terrain.IsPassable(coord))
-                    {
-                        blockedCoords.Add(coord);
-                    }
-                }
-            }
+            // 注：不可通过地形已在 A* 内部通过 GameConfig.GetTerrainMoveCost() 处理
 
             // 只有本航线的起点和终点是允许的端点
             var allowedEndpoints = new HashSet<HexCoord>
@@ -80,7 +69,7 @@ public class AviationEdge
             // blockedPenalty = float.MaxValue 表示完全禁止经过障碍物
             pathCoords = fromNode.hexCoord.FindPathAStar(
                 toNode.hexCoord,
-                blockedCoords,              // 障碍物：已占用格子 + 其他节点 + 不可通过地形
+                blockedCoords,              // 障碍物：已占用格子 + 其他节点
                 allowedEndpoints,           // 允许通过：仅本航线起点终点
                 turnPenalty: 0.3f,
                 crossPenalty: 0.001f,
@@ -100,6 +89,7 @@ public class AviationEdge
         CalculateCost();
     }
 
+
     /// <summary>
     /// 计算路径的建造成本（考虑地形成本倍率）
     /// </summary>
@@ -117,7 +107,15 @@ public class AviationEdge
 
         foreach (var coord in pathCoords)
         {
-            float multiplier = terrain?.GetBuildCostMultiplier(coord) ?? 1f;
+            float multiplier = 1f;
+            if (terrain != null)
+            {
+                var cell = terrain.GetTerrainAt(coord);
+                if (cell != null)
+                {
+                    multiplier = GameConfig.GetTerrainBuildCost(cell.type);
+                }
+            }
             totalMultiplier += multiplier;
         }
 
@@ -126,6 +124,7 @@ public class AviationEdge
         // 基础成本 = 路径长度 - 1（不含起点）
         cost = pathCoords.Count > 0 ? pathCoords.Count - 1 : 0;
     }
+
 
     /// <summary>
     /// 将路径格子注册到占用集合（不含起点和终点）

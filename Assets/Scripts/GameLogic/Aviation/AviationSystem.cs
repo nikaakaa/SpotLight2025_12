@@ -213,37 +213,15 @@ public class AviationSystem
             return null;
         }
 
-        // 防止重复创建视图
-        string viewName = $"Edge_{edge.edgeIndex}_{from.nodeIndex}_to_{to.nodeIndex}";
-
-        // 如果指定了父节点，先在父节点下查找
-        if (parent != null)
+        // 使用 AirLineController 统一创建视图
+        if (AirLineController.Instance != null)
         {
-            Transform existing = parent.Find(viewName);
-            if (existing != null)
-            {
-                Debug.Log($"[AviationSystem] 视图 {viewName} 已存在，跳过创建");
-                return edge;
-            }
+            AirLineController.Instance.AddLine(edge);
         }
         else
         {
-            // 全局查找
-            GameObject existingGo = GameObject.Find(viewName);
-            if (existingGo != null)
-            {
-                Debug.Log($"[AviationSystem] 视图 {viewName} 已存在，跳过创建");
-                return edge;
-            }
+            Debug.LogWarning("[AviationSystem] AirLineController 未初始化，跳过视图创建");
         }
-
-        // 创建视图 GameObject
-        GameObject lineObj = new GameObject(viewName);
-        if (parent != null) lineObj.transform.SetParent(parent);
-
-        // 视图层单向引用运行时层
-        EdgeLineView lineView = lineObj.AddComponent<EdgeLineView>();
-        lineView.Initialize(edge);
 
         Debug.Log($"[AviationSystem] EdgeLineView 创建完成");
 
@@ -301,25 +279,21 @@ public class AviationSystem
     {
         if (edge == null) return false;
 
-        // 如果没有传入视图，尝试查找
-        if (edgeView == null)
-        {
-            string viewName = $"Edge_{edge.edgeIndex}_{edge.fromNode?.nodeIndex}_to_{edge.toNode?.nodeIndex}";
-            GameObject viewObj = GameObject.Find(viewName);
-            if (viewObj != null)
-            {
-                edgeView = viewObj.GetComponent<EdgeLineView>();
-            }
-        }
+        int edgeIndex = edge.edgeIndex;
 
         // 移除数据
         bool removed = RemoveEdge(edge, triggerEvent);
 
-        // 销毁视图
-        if (edgeView != null)
+        // 使用 AirLineController 统一销毁视图
+        if (AirLineController.Instance != null)
         {
+            AirLineController.Instance.RemoveLine(edgeIndex);
+        }
+        else if (edgeView != null)
+        {
+            // 后备：直接销毁传入的视图
             Object.Destroy(edgeView.gameObject);
-            Debug.Log($"[AviationSystem] 销毁边视图");
+            Debug.Log($"[AviationSystem] 销毁边视图（后备方式）");
         }
 
         return removed;
@@ -392,13 +366,13 @@ public class AviationSystem
         var selectedCoords = PoissonDiskSampler.Sample(candidates, count, minDistance);
 
         // 3. 获取所有可用的节点配置 ID
-        var nodeConfigs = TableLoader.Tables.TbNode.DataList;
+        var nodeConfigs = GameConfig.NodeConfigs;
 
         // 4. 在选中的坐标上创建城市
         foreach (var coord in selectedCoords)
         {
             // 随机选择一个节点配置
-            int configId = nodeConfigs[Random.Range(0, nodeConfigs.Count)].Id;
+            int configId = GameConfig.GetRandomNodeConfigId();
             AddNodeWithView(configId, coord, parent);
         }
 
@@ -423,7 +397,7 @@ public class AviationSystem
         }
 
         // 获取所有可用的节点配置 ID
-        var nodeConfigs = TableLoader.Tables.TbNode.DataList;
+        var nodeConfigs = GameConfig.NodeConfigs;
 
         int generated = 0;
         for (int i = 0; i < allHexes.Count && generated < count; i++)
@@ -435,7 +409,7 @@ public class AviationSystem
                 continue;
 
             // 随机选择一个节点配置
-            int configId = nodeConfigs[Random.Range(0, nodeConfigs.Count)].Id;
+            int configId = GameConfig.GetRandomNodeConfigId();
 
             AddNodeWithView(configId, coord, parent);
             generated++;

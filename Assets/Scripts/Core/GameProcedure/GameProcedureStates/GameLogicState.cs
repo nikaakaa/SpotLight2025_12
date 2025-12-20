@@ -8,6 +8,8 @@ using UnityEngine;
 public class GameLogicState : ComposeState<GameProcedureContext>
 {
     public AviationSystem aviationSystem;
+    public PlayerRunTimeInfo playerRunTimeInfo;
+
     public GameLogicState()
     {
         Name = nameof(GameLogicState);
@@ -15,10 +17,28 @@ public class GameLogicState : ComposeState<GameProcedureContext>
 
     protected override void OnEnter(GameProcedureContext ctx)
     {
-        //初始化游戏数据,如果有保存数据的话,不过不做保存
+        // 获取 LoadingGameState 中创建的运行时数据
+        playerRunTimeInfo = PlayerRunTimeInfo.Current;
+
+        // 初始化游戏数据
         aviationSystem = new AviationSystem();
 
-        Debug.Log($"[{Name}] Enter - 进入游戏逻辑循环");
+        // 初始化航线控制器
+        InitAirLineController();
+
+        Debug.Log($"[{Name}] Enter - 进入游戏逻辑循环, 资产={playerRunTimeInfo?.Assets}");
+    }
+
+    /// <summary>
+    /// 初始化航线控制器
+    /// </summary>
+    private void InitAirLineController()
+    {
+        var existing = Object.FindFirstObjectByType<AirLineController>();
+        if (existing == null)
+        {
+            AirLineController.CreateInScene();
+        }
     }
 
     protected override void OnUpdate(GameProcedureContext ctx)
@@ -28,7 +48,12 @@ public class GameLogicState : ComposeState<GameProcedureContext>
 
     protected override void OnExit(GameProcedureContext ctx)
     {
-        Debug.Log($"[{Name}] Exit - 退出游戏逻辑循环");
+        // 清理运行时数据
+        PlayerRunTimeInfo.Current = null;
+        playerRunTimeInfo = null;
+        aviationSystem = null;
+
+        Debug.Log($"[{Name}] Exit - 退出游戏逻辑循环，数据已清理");
     }
 
     /// <summary>

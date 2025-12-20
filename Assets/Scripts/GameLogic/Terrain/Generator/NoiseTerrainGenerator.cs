@@ -57,7 +57,7 @@ public class NoiseTerrainGenerator : ITerrainGenerator
     /// <summary>
     /// 保留的最大陆地块数量
     /// </summary>
-    public int maxContinents = 6;  // 保留多个大陆
+    public int maxContinents = 10;  // 保留多个大陆
 
     /// <summary>
     /// 小于此面积的陆地块会被淹没
@@ -118,18 +118,23 @@ public class NoiseTerrainGenerator : ITerrainGenerator
         Vector2 noisePos = new Vector2(worldPos.x, worldPos.y);
 
         // 1. 大陆形状噪声（低频，决定大陆轮廓）
-        float continentShape = continentNoise.Evaluate(noisePos * 0.015f);
+        float continentShape = continentNoise.Evaluate(noisePos * 0.012f);
         continentShape = (continentShape + 1f) / 2f; // 归一化到 0-1
 
-        // 2. 细节噪声（中频，添加地形变化）
+        // 2. 中层噪声（决定区域高低起伏）
+        float midNoise = noise.Evaluate(noisePos * 0.03f);
+        midNoise = (midNoise + 1f) / 2f;
+
+        // 3. 细节噪声（高频，添加地形细节）
         float detailNoise = CalculateFBM(noise, noisePos);
         detailNoise = (detailNoise + 1f) / 2f; // 归一化到 0-1
 
-        // 3. 混合大陆形状和细节（大陆形状权重高）
-        float height = continentShape * 0.7f + detailNoise * 0.3f;
+        // 4. 混合三层噪声（大陆50% + 中层30% + 细节20%）
+        float height = continentShape * 0.5f + midNoise * 0.3f + detailNoise * 0.2f;
 
-        // 4. 应用大陆偏移（让陆地更多）
+        // 5. 应用大陆偏移
         height += continentBias;
+
 
         // 5. 岛屿遮罩（强制边缘为海洋）
         float distanceFromCenter = coord.DistanceTo(HexCoord.Zero) / (float)radius;

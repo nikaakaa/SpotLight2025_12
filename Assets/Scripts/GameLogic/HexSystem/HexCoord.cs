@@ -533,8 +533,21 @@ public struct HexCoord : IEquatable<HexCoord>
                 if (isBlocked && !isAllowedEndpoint && blockedPenalty >= float.MaxValue)
                     continue;
 
-                // 计算 G 代价
-                float moveCost = 1.0f; // 基础移动代价
+                // 计算 G 代价 - 使用地形成本（如果有 TerrainSystem）
+                float terrainCost = 1.0f;
+                if (TerrainSystem.Instance != null)
+                {
+                    var cell = TerrainSystem.Instance.GetTerrainAt(neighborCoord);
+                    if (cell != null)
+                    {
+                        terrainCost = GameConfig.GetTerrainMoveCost(cell.type);
+                        // 如果地形不可通过（成本为0），跳过
+                        if (terrainCost <= 0f)
+                            continue;
+                    }
+                }
+
+                float moveCost = terrainCost; // 使用地形成本作为基础移动代价
 
                 // 转向代价
                 if (current.Direction >= 0 && i != current.Direction)
@@ -549,6 +562,7 @@ public struct HexCoord : IEquatable<HexCoord>
                 {
                     moveCost += blockedPenalty;
                 }
+
 
                 float tentativeG = current.G + moveCost;
 

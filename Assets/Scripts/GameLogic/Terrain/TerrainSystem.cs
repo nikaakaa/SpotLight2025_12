@@ -16,7 +16,7 @@ public class TerrainSystem
     /// <summary>
     /// 地图半径（六边形格子数）
     /// </summary>
-    public int mapRadius = 20;
+    public int mapRadius;
 
     /// <summary>
     /// 随机种子

@@ -1,140 +1,113 @@
-using System;
-using System.Collections.Generic;
-using UnityEngine;
-
 /// <summary>
-/// 玩家静态数据（纯数据容器，无 MonoBehaviour 依赖）
-/// 遵循数据与逻辑分离原则
+/// 玩家静态配置数据（只读常量）
+/// 运行时可变数据请使用 PlayerRunTimeInfo
+/// 
+/// 设计原则：
+/// - PlayerData = 静态配置（初始值、规则参数）
+/// - PlayerRunTimeInfo = 运行时数据（资产、回合、Buff等）
 /// </summary>
-[Serializable]
-public class PlayerData
+public static class PlayerData
 {
-    // ========== 核心经济数据 ==========
+    // ========== 初始值配置 ==========
 
     /// <summary>
-    /// 当前资产（金钱）
+    /// 初始资产
     /// </summary>
-    [SerializeField] private long assets = 1000;
-    public long Assets
-    {
-        get => assets;
-        set
-        {
-            long oldValue = assets;
-            assets = value;
-            OnAssetsChanged?.Invoke(oldValue, assets);
-        }
-    }
+    public const long INITIAL_ASSETS = 1000;
 
     /// <summary>
-    /// 资产变化事件（用于 UI 更新）
+    /// 初始回合数
     /// </summary>
-    public event Action<long, long> OnAssetsChanged;
+    public const int INITIAL_ROUND = 1;
 
-    // ========== 回合数据 ==========
+    // ========== 航线成本配置 ==========
 
     /// <summary>
-    /// 当前回合数
+    /// 每格航线建造基础成本
     /// </summary>
-    [SerializeField] private int currentRound = 1;
-    public int CurrentRound
-    {
-        get => currentRound;
-        set => currentRound = Mathf.Max(1, value);
-    }
+    public const int EDGE_BUILD_COST_PER_TILE = 10;
 
     /// <summary>
-    /// 本回合新增的节点数量（用于 Buff #15 判定）
+    /// 拆除航线返还比例（0.0 - 1.0）
     /// </summary>
-    public int NodesAddedThisRound { get; set; } = 0;
+    public const float EDGE_REMOVE_REFUND_RATE = 0.5f;
+
+    // ========== 节点成本配置 ==========
 
     /// <summary>
-    /// 本回合是否禁止升级机场（用于 Buff #18 判定）
+    /// 节点升级基础成本
+    /// 节点成本 = 节点等级 × NODE_UPGRADE_BASE_COST
     /// </summary>
-    public bool IsUpgradeBlocked { get; set; } = false;
+    public const int NODE_UPGRADE_BASE_COST = 100;
 
-    // ========== Buff 相关 ==========
+    // ========== 结算规则配置 ==========
 
     /// <summary>
-    /// 玩家永久 Buff ID 列表（从商店购买的）
+    /// 破产阈值（资产低于此值判定破产）
     /// </summary>
-    public List<int> ownedPlayerBuffIds = new List<int>();
+    public const long BANKRUPTCY_THRESHOLD = 0;
 
     /// <summary>
-    /// 当前回合的市场趋势 Buff ID 列表（每回合随机）
+    /// 反盲目扩张惩罚阈值（Buff #15）
+    /// 本回合新增节点数 >= 此值时触发
     /// </summary>
-    public List<int> currentMarketBuffIds = new List<int>();
-
-    // ========== 统计数据 ==========
+    public const int EXPANSION_PENALTY_THRESHOLD = 2;
 
     /// <summary>
-    /// 累计收益（历史总额）
+    /// 反盲目扩张惩罚倍率（Buff #15）
     /// </summary>
-    public long TotalIncomeEarned { get; set; } = 0;
+    public const float EXPANSION_PENALTY_MULTIPLIER = 1.3f;
+
+    // ========== 结构倍率配置 ==========
 
     /// <summary>
-    /// 累计成本（历史总额）
+    /// 环形结构基础倍率
     /// </summary>
-    public long TotalCostPaid { get; set; } = 0;
+    public const float RING_BASE_MULTIPLIER = 1.5f;
 
     /// <summary>
-    /// 最高单回合收益
+    /// 单线结构基础倍率
     /// </summary>
-    public long HighestRoundIncome { get; set; } = 0;
-
-    // ========== 方法 ==========
+    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.0f;
 
     /// <summary>
-    /// 开始新回合（重置回合相关数据）
+    /// 放射结构基础倍率（枢纽）
     /// </summary>
-    public void StartNewRound()
-    {
-        currentRound++;
-        NodesAddedThisRound = 0;
-        IsUpgradeBlocked = false;
-        currentMarketBuffIds.Clear();
-    }
+    public const float RADIAL_BASE_MULTIPLIER = 1.2f;
+
+    // ========== 枢纽规则配置 ==========
 
     /// <summary>
-    /// 结算收益
+    /// 环形结构中每 N 个节点必须包含一个枢纽
     /// </summary>
-    /// <param name="income">本回合收益</param>
-    /// <param name="cost">本回合成本</param>
-    /// <returns>净收益（可为负）</returns>
-    public long ApplySettlement(long income, long cost)
-    {
-        long netProfit = income - cost;
-
-        // 更新统计
-        TotalIncomeEarned += income;
-        TotalCostPaid += cost;
-        if (income > HighestRoundIncome)
-            HighestRoundIncome = income;
-
-        // 更新资产（通过属性触发事件）
-        Assets += netProfit;
-
-        return netProfit;
-    }
+    public const int RING_HUB_REQUIRED_PER_NODES = 4;
 
     /// <summary>
-    /// 是否破产
+    /// Lv4 机场最少航线数量（Buff #19）
     /// </summary>
-    public bool IsBankrupt => assets < 0;
+    public const int LV4_MIN_EDGE_COUNT = 6;
 
     /// <summary>
-    /// 重置为初始状态
+    /// Lv5 机场最少航线数量（Buff #19）
     /// </summary>
-    public void Reset()
-    {
-        assets = 1000;
-        currentRound = 1;
-        NodesAddedThisRound = 0;
-        IsUpgradeBlocked = false;
-        ownedPlayerBuffIds.Clear();
-        currentMarketBuffIds.Clear();
-        TotalIncomeEarned = 0;
-        TotalCostPaid = 0;
-        HighestRoundIncome = 0;
-    }
+    public const int LV5_MIN_EDGE_COUNT = 8;
+
+    /// <summary>
+    /// 超额设施闲置惩罚（Buff #19）
+    /// </summary>
+    public const float UNDERUTILIZED_PENALTY = 0.6f;
+
+    // ========== 市场趋势 Buff 配置 ==========
+
+    /// <summary>
+    /// 每回合随机市场 Buff 数量
+    /// </summary>
+    public const int MARKET_BUFF_COUNT_PER_ROUND = 2;
+
+    // ========== 商店配置 ==========
+
+    /// <summary>
+    /// 玩家 Buff 基础价格
+    /// </summary>
+    public const int PLAYER_BUFF_BASE_PRICE = 500;
 }

@@ -1,25 +1,24 @@
 using System.Collections.Generic;
-using cfg;
 
 /// <summary>
 /// 航空节点运行时数据
-/// 配置层: cfg.Node
+/// 配置层: GameConfig.NodeConfig（替代原 cfg.Node）
 /// 运行时层: AviationNode
 /// 显示层: CityNode（单向引用 AviationNode）
 /// </summary>
 public class AviationNode
 {
     public int nodeIndex; // 在 AviationSystem 中的索引
-    public cfg.Node nodeData; // 配置数据
+    public GameConfig.NodeConfig nodeData; // 配置数据（替代 cfg.Node）
     public HexCoord hexCoord; // 六边形坐标
-    
+
     // 该节点连接的所有边
     public List<AviationEdge> edges = new List<AviationEdge>();
 
     public AviationNode(int nodeId, int index)
     {
         nodeIndex = index;
-        nodeData = TableLoader.Tables.TbNode.Get(nodeId);
+        nodeData = GameConfig.GetNodeConfig(nodeId);
     }
 
     /// <summary>
