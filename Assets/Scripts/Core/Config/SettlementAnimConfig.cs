@@ -34,6 +34,9 @@ public static class SettlementAnimConfig
     /// <summary>恢复正常时长</summary>
     public const float RestoreDuration = 0.3f;
 
+    /// <summary>Buff 通知显示时长</summary>
+    public const float BuffNotificationDuration = 2.0f;
+
     // ========== 颜色配置 ==========
 
     /// <summary>变暗颜色</summary>
