@@ -1,14 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// 随机节点状态 - 处理随机节点的生成、配置和展示逻辑
+/// 随机节点状态 - 使用簇状生长算法生成节点
+/// 特点：大部分节点靠近已有节点生成，越高级的节点越稀有且生成越远
 /// </summary>
 public class RandomNodeState : LeafState<GameProcedureContext>
 {
-    [Header("生成配置")]
-    private int nodeCount = 5;       // 每回合生成的节点数量
-    private int minDistance = 3;     // 城市最小间隔（六边形格子数）
-
     public RandomNodeState()
     {
         Name = nameof(RandomNodeState);
@@ -29,17 +26,22 @@ public class RandomNodeState : LeafState<GameProcedureContext>
         HexMetrics.SetSize(1f);
         HexMetrics.SetOrientation(true); // Pointy-top
 
-        // 生成随机节点（使用新版 Poisson Disk 采样）
-        AviationSystem.Instance.GenerateRandomNodes(nodeCount, minDistance);
+        // 获取当前回合数
+        int currentRound = PlayerRunTimeInfo.Current?.CurrentRound ?? 1;
 
-        Debug.Log($"[{Name}] 随机节点生成完成，当前节点数: {AviationSystem.Instance.aviationNodeDict.Count}");
+        // 计算本回合生成的节点数量
+        int nodeCount = NodeSpawnConfig.NodesPerRound;
+
+        // 使用簇状生长算法生成节点
+        // 该算法会根据回合数自动调整节点等级概率和生成距离
+        AviationSystem.Instance.GenerateNodesWithClusterGrowth(nodeCount, currentRound);
+
+        Debug.Log($"[{Name}] 簇状生长节点生成完成，回合 {currentRound}，当前节点数: {AviationSystem.Instance.aviationNodeDict.Count}");
     }
-
 
     protected override void OnUpdate(GameProcedureContext ctx)
     {
-        // 节点生成是异步的，可以在这里检查是否完成
-        // 目前简化处理，直接在 OnEnter 中完成
+        // 节点生成是同步的，这里无需处理
     }
 
     protected override void OnExit(GameProcedureContext ctx)

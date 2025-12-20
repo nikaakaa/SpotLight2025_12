@@ -97,6 +97,19 @@ public static class GameConfig
         return NodeConfigs[UnityEngine.Random.Range(0, NodeConfigs.Count)].Id;
     }
 
+    /// <summary>
+    /// 根据等级获取节点配置 ID
+    /// 等级 1-5 对应 ID 1001-1005
+    /// </summary>
+    /// <param name="level">节点等级 (1-5)</param>
+    /// <returns>对应的节点配置 ID</returns>
+    public static int GetNodeConfigIdByLevel(int level)
+    {
+        // 确保等级在有效范围内
+        level = UnityEngine.Mathf.Clamp(level, 1, 5);
+        return 1000 + level;
+    }
+
     // ========== 地形寻路配置 ==========
 
     /// <summary>
