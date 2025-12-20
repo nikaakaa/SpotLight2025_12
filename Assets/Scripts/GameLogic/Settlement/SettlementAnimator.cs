@@ -130,17 +130,13 @@ public class SettlementAnimator : MonoBehaviour
     }
 
     /// <summary>
-    /// 计算速度倍率（越后面越快）
+    /// 计算速度倍率（线性增长，每个结构增加固定值，上限为MaxSpeedMultiplier）
     /// </summary>
     private float CalculateSpeedMultiplier(int currentIndex, int total)
     {
-        if (total <= 1) return 1f;
-
-        // 从 1.0 加速到 3.0（后面的结构播放速度是前面的3倍）
-        float progress = (float)currentIndex / (total - 1);
-        float speedMultiplier = 1f + progress * 2f;  // 1.0 → 3.0
-
-        return speedMultiplier;
+        // 线性增长：1.0 + index * increment，上限为 MaxSpeedMultiplier
+        float speedMultiplier = 1f + currentIndex * SettlementAnimConfig.SpeedIncrementPerStructure;
+        return Mathf.Min(speedMultiplier, SettlementAnimConfig.MaxSpeedMultiplier);
     }
 
     private async UniTask AnimateStructure(StructureBase structure, SettlementResult result, int structureIndex, float speedMultiplier, CancellationToken ct)
@@ -160,7 +156,7 @@ public class SettlementAnimator : MonoBehaviour
         }
 
         // 触发结构 Buff UI 动画
-        if (result.structureAppliedBuffs != null && 
+        if (result.structureAppliedBuffs != null &&
             result.structureAppliedBuffs.TryGetValue(structureIndex, out var structureBuffIds))
         {
             foreach (var buffId in structureBuffIds)
@@ -488,13 +484,13 @@ public class SettlementAnimator : MonoBehaviour
             Vector3 nodePos = node.cityNodeView.GetFloatingNumberPosition();
 
             // 触发节点 Buff UI 动画
-            if (result.nodeAppliedBuffs != null && 
+            if (result.nodeAppliedBuffs != null &&
                 result.nodeAppliedBuffs.TryGetValue(node.nodeIndex, out var buffIds))
             {
-               foreach (var buffId in buffIds)
-               {
-                   GameLogicUI.Instance?.PunchBuffItem(buffId);
-               }
+                foreach (var buffId in buffIds)
+                {
+                    GameLogicUI.Instance?.PunchBuffItem(buffId);
+                }
             }
 
             // 如果有加数 Buff，播放加数碰撞动画
@@ -502,7 +498,7 @@ public class SettlementAnimator : MonoBehaviour
             {
                 // 计算应用加数后的中间值
                 float valueAfterFlat = rawIncome + flatBonus;
-                
+
                 buffTasks.Add(AnimateBuffImpact(
                     nodePos,
                     nodeNumber,
@@ -531,7 +527,7 @@ public class SettlementAnimator : MonoBehaviour
         if (buffTasks.Count > 0)
         {
             await UniTask.WhenAll(buffTasks);
-            
+
             // 稍微等待一下再继续
             await UniTask.Delay((int)(100 * timeScale), cancellationToken: ct);
         }
@@ -572,8 +568,8 @@ public class SettlementAnimator : MonoBehaviour
 
         // 3. 确定颜色（正面增益 vs 负面减益）
         bool isPositive = isAdditive ? buffValue > 0 : buffValue > 1f;
-        Color buffColor = isPositive 
-            ? SettlementAnimConfig.BuffPositiveColor 
+        Color buffColor = isPositive
+            ? SettlementAnimConfig.BuffPositiveColor
             : SettlementAnimConfig.BuffNegativeColor;
 
         // 4. 显示 Buff 数字
