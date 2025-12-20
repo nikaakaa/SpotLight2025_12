@@ -416,8 +416,23 @@ public class SettlementAnimator : MonoBehaviour
         {
             await fn.Show(value, color, duration);
             activeFloatingNumbers.Add(fn);
+
+            // 摄像机抖动
+            ShakeCamera();
         }
         return fn;
+    }
+
+    /// <summary>
+    /// 触发摄像机抖动
+    /// </summary>
+    private void ShakeCamera()
+    {
+        CinemachineCameraController.Instance?.Shake(
+            SettlementAnimConfig.CameraShakeStrength,
+            SettlementAnimConfig.CameraShakeDuration,
+            SettlementAnimConfig.CameraShakeVibrato
+        );
     }
 
     /// <summary>

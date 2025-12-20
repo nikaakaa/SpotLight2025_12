@@ -338,6 +338,48 @@ public static class Player_RadialMultiplier_Module
 #endregion
 
 // ============================================================================
+// Player Buff 109-112: 特殊效果
+// ============================================================================
+
+#region Buff 111: 短途航线爆发
+
+/// <summary>Buff #111: 短途航线爆发 - 长度<10成本-20%</summary>
+[BuffModule(111, E_BuffCallBackType.OnCalculateEdgeCost)]
+public static class Player_ShortRouteCost_Module
+{
+    public const int SHORT_ROUTE_THRESHOLD = 10; // 短途阈值：距离<10
+
+    public static void Apply(BuffInfo info, object[] args)
+    {
+        if (args?.Length < 2) return;
+        int pathLength = (int)args[0];
+        var modifier = args[1] as IncomeModifier;
+        int stack = ((IBuffTicker)info).CurStack;
+
+        if (pathLength < SHORT_ROUTE_THRESHOLD)
+        {
+            modifier.Multiplier *= Mathf.Pow(0.8f, stack); // 成本-20%
+        }
+    }
+}
+
+/// <summary>Buff #111: 短途航线爆发 - 参与结构倍率+0.1</summary>
+[BuffModule(111, E_BuffCallBackType.OnCalculateStructureMultiplier)]
+public static class Player_ShortRouteMultiplier_Module
+{
+    public static void Apply(BuffInfo info, object[] args)
+    {
+        // 结构倍率固定+0.1，不判断航线长度（结构内默认有短途航线时生效）
+        if (args?.Length < 2) return;
+        var modifier = args[1] as MultiplierModifier;
+        int stack = ((IBuffTicker)info).CurStack;
+        modifier.FlatBonus += 0.1f * stack;
+    }
+}
+
+#endregion
+
+// ============================================================================
 // 测试 Buff 模块
 // ============================================================================
 
@@ -355,3 +397,4 @@ public static class TestBuff_SetMoney_Module
         }
     }
 }
+

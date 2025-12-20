@@ -46,6 +46,11 @@ public static class NodeSpawnConfig
     };
 
     /// <summary>
+    /// 节点生成距离上限（距离已有节点不得超过此值）
+    /// </summary>
+    public const int MaxSpawnDistanceFromNode = 25;
+
+    /// <summary>
     /// 获取指定等级的生成距离范围（动态计算，基于地图大小）
     /// </summary>
     public static (int minDist, int maxDist) GetDistanceRange(int level)
@@ -56,11 +61,15 @@ public static class NodeSpawnConfig
         {
             int minDist = Mathf.Max(3, Mathf.RoundToInt(mapRadius * ratio.minRatio));
             int maxDist = Mathf.Max(minDist + 1, Mathf.RoundToInt(mapRadius * ratio.maxRatio));
+
+            // 限制最大距离不超过 MaxSpawnDistanceFromNode
+            maxDist = Mathf.Min(maxDist, MaxSpawnDistanceFromNode);
+
             return (minDist, maxDist);
         }
 
         // 默认：最小间距
-        return (MinNodeDistance, MinNodeDistance + 2);
+        return (MinNodeDistance, Mathf.Min(MinNodeDistance + 2, MaxSpawnDistanceFromNode));
     }
 
     // ========== 等级生成权重配置 ==========

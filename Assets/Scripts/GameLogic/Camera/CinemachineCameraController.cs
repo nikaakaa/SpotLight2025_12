@@ -139,6 +139,43 @@ public class CinemachineCameraController : MonoBehaviour
         SetPositionImmediate(Vector3.zero);
     }
 
+    /// <summary>
+    /// 摄像机抖动效果
+    /// </summary>
+    /// <param name="strength">抖动强度</param>
+    /// <param name="duration">抖动时长</param>
+    /// <param name="vibrato">抖动频率</param>
+    public void Shake(float strength = 0.15f, float duration = 0.2f, int vibrato = 10)
+    {
+        if (isShaking) return; // 避免重复抖动
+        StartCoroutine(ShakeCoroutine(strength, duration, vibrato));
+    }
+
+    private bool isShaking = false;
+
+    private System.Collections.IEnumerator ShakeCoroutine(float strength, float duration, int vibrato)
+    {
+        isShaking = true;
+        Vector3 originalPos = transform.position;
+        float elapsed = 0f;
+        float interval = duration / vibrato;
+
+        while (elapsed < duration)
+        {
+            // 随机偏移
+            float x = Random.Range(-strength, strength);
+            float y = Random.Range(-strength, strength);
+            transform.position = originalPos + new Vector3(x, y, 0);
+
+            elapsed += interval;
+            yield return new WaitForSeconds(interval);
+        }
+
+        // 恢复原位
+        transform.position = originalPos;
+        isShaking = false;
+    }
+
     // ========== 内部方法 ==========
 
     private void UpdateMoveAnimation()

@@ -282,17 +282,29 @@ public class SettlementCalculator
 
     /// <summary>
     /// 计算所有航线的成本
+    /// 公式：成本 = BASE × log(节点数 + OFFSET)^POWER / 距离^DISTANCE_POWER
     /// </summary>
     private void CalculateEdgeCosts(AviationSystem system, SettlementResult result, IGameplayBuffSystem buffSystem)
     {
+        // 获取当前节点数量
+        int nodeCount = system.aviationNodeDict?.Count ?? 1;
+
+        // 对数成本系数：log(节点数 + 偏移量)^指数
+        float logValue = UnityEngine.Mathf.Log10(nodeCount + PlayerData.EDGE_COST_NODE_OFFSET);
+        float logFactor = UnityEngine.Mathf.Pow(logValue, PlayerData.EDGE_COST_LOG_POWER);
+
         foreach (var kvp in system.aviationEdgeDict)
         {
             var edge = kvp.Value;
             int edgeIndex = edge.edgeIndex;
 
-            // 基础成本 = 路径长度 × 每格成本
-            int pathLength = edge.pathCoords?.Count ?? 0;
-            float baseCost = pathLength * PlayerData.EDGE_BUILD_COST_PER_TILE;
+            // 新公式：成本 = BASE × log系数 / 距离^POWER
+            int pathLength = edge.pathCoords?.Count ?? 1;
+            float distanceFactor = UnityEngine.Mathf.Pow(pathLength, PlayerData.EDGE_COST_DISTANCE_POWER);
+            float baseCost = PlayerData.EDGE_COST_BASE * logFactor / distanceFactor;
+
+            // 钳制在最小/最大范围内
+            baseCost = UnityEngine.Mathf.Clamp(baseCost, PlayerData.EDGE_COST_MIN, PlayerData.EDGE_COST_MAX);
 
             // 重置修正器
             edgeCostModifier.Reset();
@@ -306,7 +318,7 @@ public class SettlementCalculator
             result.edgeCosts[edgeIndex] = finalCost;
         }
 
-        Debug.Log($"[SettlementCalculator] 计算航线成本完成: {result.edgeCosts.Count} 条航线");
+        Debug.Log($"[SettlementCalculator] 计算航线成本完成: {result.edgeCosts.Count} 条航线, 节点数={nodeCount}, 对数系数={logFactor:F2}");
     }
 
     #endregion

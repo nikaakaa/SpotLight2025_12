@@ -96,7 +96,7 @@ public static class BuffRegistry
         Register(new BuffData { id = 108, buffName = "Player_RadialMultiplier", description = "枢纽密度提升：放射倍率+0.1", isForever = true });
         Register(new BuffData { id = 109, buffName = "Player_RemoteRouteCost", description = "偏远补贴：lv1-2航线成本-50%", isForever = true });
         Register(new BuffData { id = 110, buffName = "Player_DecentralizedBonus", description = "去中心化：非枢纽结构倍率+0.2", isForever = true });
-        Register(new BuffData { id = 111, buffName = "Player_ShortRouteBonus", description = "短途爆发：长度≤2成本-20%，倍率+0.1", isForever = true });
+        Register(new BuffData { id = 111, buffName = "Player_ShortRouteBonus", description = "短途爆发：长度<10成本-20%，倍率+0.1", isForever = true });
         Register(new BuffData { id = 112, buffName = "Player_IsolatedNodeBonus", description = "孤立繁荣：未参与结构节点+100%", isForever = true });
     }
 

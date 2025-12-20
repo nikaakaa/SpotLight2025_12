@@ -19,6 +19,9 @@ public class CityNode : MonoBehaviour
     [SerializeField] private Color selectedColor = Color.green;
     [SerializeField] private Color hoverColor = Color.yellow;
 
+    [Header("等级显示")]
+    [SerializeField] private TMPro.TextMeshProUGUI levelText;  // 等级文本（子物体）
+
     [Header("标识设置（子物体）")]
     [SerializeField] private Transform markerTransform;  // 拖入标识子物体
     [SerializeField] private float showZoomThreshold = 30f;  // 缩放超过此值显示标识
@@ -39,9 +42,15 @@ public class CityNode : MonoBehaviour
         if (spriteRenderer == null)
             spriteRenderer = GetComponent<SpriteRenderer>();
 
+        // 自动查找等级文本
+        if (levelText == null)
+            levelText = GetComponentInChildren<TMPro.TextMeshProUGUI>();
+
         // 设置渲染层级 - 城市节点在最上层
         if (spriteRenderer != null)
             spriteRenderer.sortingOrder = RenderLayers.CITY;
+
+        // 注意：TextMeshProUGUI 的渲染层级由 Canvas 的 Sort Order 控制
 
         originalScale = transform.localScale;
     }
@@ -99,7 +108,34 @@ public class CityNode : MonoBehaviour
         aviationNode = node;
         // 设置反向引用（用于动画系统）
         node.cityNodeView = this;
+
+        // 设置等级文本
+        UpdateLevelText();
+
         UpdateVisual();
+    }
+
+    /// <summary>
+    /// 更新等级显示文本
+    /// </summary>
+    public void UpdateLevelText()
+    {
+        if (levelText == null)
+        {
+            Debug.LogWarning($"[CityNode] {name}: levelText 为空，无法更新等级显示！");
+            return;
+        }
+
+        if (aviationNode == null || aviationNode.nodeData == null)
+        {
+            Debug.LogWarning($"[CityNode] {name}: aviationNode 或 nodeData 为空！");
+            return;
+        }
+
+        // 从 nodeData.Id 计算等级（1001=lv1, 1002=lv2, ...）
+        int level = aviationNode.nodeData.Id - 1000;
+        levelText.text = level.ToString();
+        Debug.Log($"[CityNode] {name}: 设置等级文本 = {level}");
     }
 
     public void SetSelected(bool selected)

@@ -21,10 +21,57 @@ public static class PlayerData
     public const int INITIAL_ROUND = 1;
 
     // ========== 航线成本配置 ==========
+    // 公式：成本 = BASE × log(节点数 + OFFSET)^POWER × DISTANCE_SCALE / sqrt(距离)
 
     /// <summary>
-    /// 每格航线建造基础成本
+    /// 航线成本基础常数 - 整体成本缩放
+    /// 增大 = 所有航线更贵，减小 = 所有航线更便宜
     /// </summary>
+    public const float EDGE_COST_BASE = 60f;
+
+    /// <summary>
+    /// 节点数偏移量 - 控制前期曲线
+    /// 增大 = 前期更轻松（log曲线起点更平缓）
+    /// 减小 = 前期更困难（快速进入陡峭区间）
+    /// </summary>
+    public const float EDGE_COST_NODE_OFFSET = 3f;
+
+    /// <summary>
+    /// 对数指数 - 控制增长速度
+    /// 1.0 = 标准对数增长
+    /// &gt;1.0 = 后期成本增长更快
+    /// &lt;1.0 = 后期成本增长更慢
+    /// </summary>
+    public const float EDGE_COST_LOG_POWER = 2.0f;
+
+    /// <summary>
+    /// 距离影响系数 - 控制距离对成本的影响程度
+    /// 0.5 = 标准（sqrt）
+    /// &lt;0.5 = 长距离成本降低更少（长航线更贵）
+    /// &gt;0.5 = 长距离成本降低更多（长航线更便宜）
+    /// </summary>
+    public const float EDGE_COST_DISTANCE_POWER = 0.5f;
+
+    /// <summary>
+    /// 最小成本下限 - 无论公式如何，成本不低于此值
+    /// </summary>
+    public const float EDGE_COST_MIN = 5f;
+
+    /// <summary>
+    /// 最大成本上限 - 无论公式如何，成本不高于此值
+    /// </summary>
+    public const float EDGE_COST_MAX = 500f;
+
+    /// <summary>
+    /// 航线成本常数（旧公式，已废弃）
+    /// </summary>
+    [System.Obsolete("使用新的 EDGE_COST_BASE 和对数公式")]
+    public const float EDGE_COST_CONSTANT = 120f;
+
+    /// <summary>
+    /// 每格航线建造基础成本（旧公式，已废弃）
+    /// </summary>
+    [System.Obsolete("使用 EDGE_COST_BASE 和新公式")]
     public const int EDGE_BUILD_COST_PER_TILE = 30;
 
     /// <summary>

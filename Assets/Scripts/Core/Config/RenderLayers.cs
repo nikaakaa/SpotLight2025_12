@@ -20,6 +20,11 @@ public static class RenderLayers
     public const int CITY = 100;
 
     /// <summary>
+    /// 城市节点标签/等级文字 - 节点上方
+    /// </summary>
+    public const int CITY_LABEL = 150;
+
+    /// <summary>
     /// UI 元素
     /// </summary>
     public const int UI = 1000;

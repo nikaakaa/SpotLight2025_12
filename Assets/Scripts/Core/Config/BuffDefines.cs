@@ -212,7 +212,7 @@ public enum EPlayerBuff
     RemoteRouteCostReduction = 109,
     /// <summary>#10 所有没有"枢纽"节点参与的结构，倍率+0.2 - 去中心化联盟成立</summary>
     DecentralizedBonus = 110,
-    /// <summary>#11 长度<=2的线路成本-20%，参与结构倍率+0.1 - 短途航线爆发</summary>
+    /// <summary>#11 长度<10的线路成本-20%，参与结构倍率+0.1 - 短途航线爆发</summary>
     ShortRouteBonus = 111,
     /// <summary>#12 所有未参加结构的节点收益+100% - 孤立繁荣政策实施</summary>
     IsolatedNodeBonus = 112,
@@ -273,7 +273,7 @@ public static class BuffDisplayConfig
         { 108, "枢纽航班密度提升提案通过：放射倍率+0.1" },
         { 109, "偏远航线补贴：lv1-2航线成本-50%" },
         { 110, "去中心化联盟成立：非枢纽结构倍率+0.2" },
-        { 111, "短途航线爆发：长度≤2成本-20%，倍率+0.1" },
+        { 111, "短途航线爆发：长度<10成本-20%，倍率+0.1" },
         { 112, "孤立繁荣政策实施：未参与结构节点+100%" },
     };
 
