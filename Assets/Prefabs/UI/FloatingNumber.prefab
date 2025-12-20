@@ -67,9 +67,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: New Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 87d86c9a70dc6ce489826cd4172e7821, type: 2}
-  m_sharedMaterial: {fileID: -8750427269157294223, guid: 87d86c9a70dc6ce489826cd4172e7821,
-    type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -253,9 +252,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   numberText: {fileID: 3572125712665513629}
   canvasGroup: {fileID: 0}
-  fontSize: 5
-  autoScaleWithCamera: 1
-  baseScale: 0.3
+  canvas: {fileID: 0}
 --- !u!225 &8554440559522146843
 CanvasGroup:
   m_ObjectHideFlags: 0
