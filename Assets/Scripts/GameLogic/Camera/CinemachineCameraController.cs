@@ -80,6 +80,12 @@ public class CinemachineCameraController : MonoBehaviour
                 MoveToCenter();
             }
 
+            // 按 R 键回到节点密度最高的区域
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                MoveToDensestArea();
+            }
+
             HandlePan();
         }
 
@@ -137,6 +143,46 @@ public class CinemachineCameraController : MonoBehaviour
     public void SetCenterImmediate()
     {
         SetPositionImmediate(Vector3.zero);
+    }
+
+    /// <summary>
+    /// 移动到节点密度最高的区域
+    /// </summary>
+    public void MoveToDensestArea(float duration = -1f)
+    {
+        // 获取所有节点
+        var aviationSystem = AviationSystem.Instance;
+        if (aviationSystem == null || aviationSystem.aviationNodeDict == null || aviationSystem.aviationNodeDict.Count == 0)
+        {
+            Debug.LogWarning("[CameraController] 没有节点，无法计算密度中心");
+            MoveToCenter(duration);
+            return;
+        }
+
+        // 计算所有节点的平均位置（密度中心）
+        Vector3 sum = Vector3.zero;
+        int count = 0;
+
+        foreach (var kvp in aviationSystem.aviationNodeDict)
+        {
+            var node = kvp.Value;
+            if (node.cityNodeView != null)
+            {
+                sum += node.cityNodeView.transform.position;
+                count++;
+            }
+        }
+
+        if (count > 0)
+        {
+            Vector3 center = sum / count;
+            MoveTo(center, duration);
+            Debug.Log($"[CameraController] 移动到节点密度中心: ({center.x:F1}, {center.y:F1}), 共 {count} 个节点");
+        }
+        else
+        {
+            MoveToCenter(duration);
+        }
     }
 
     /// <summary>
