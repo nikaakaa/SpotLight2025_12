@@ -25,12 +25,12 @@ public static class PlayerData
     /// <summary>
     /// 每格航线建造基础成本
     /// </summary>
-    public const int EDGE_BUILD_COST_PER_TILE = 50;
+    public const int EDGE_BUILD_COST_PER_TILE = 30;
 
     /// <summary>
     /// 拆除航线返还比例（0.0 - 1.0）
     /// </summary>
-    public const float EDGE_REMOVE_REFUND_RATE = 0.75f;
+    public const float EDGE_REMOVE_REFUND_RATE = 0.55f;
 
     // ========== 节点成本配置 ==========
 
@@ -63,34 +63,34 @@ public static class PlayerData
     /// <summary>
     /// 环形结构基础倍率
     /// </summary>
-    public const float RING_BASE_MULTIPLIER = 2.0f;
+    public const float RING_BASE_MULTIPLIER = 1.8f;
 
     /// <summary>
     /// 单线结构基础倍率
     /// </summary>
-    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.2f;
+    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.05f;
 
     /// <summary>
     /// 放射结构基础倍率（枢纽）
     /// </summary>
-    public const float RADIAL_BASE_MULTIPLIER = 1.5f;
+    public const float RADIAL_BASE_MULTIPLIER = 1.2f;
 
     // ========== 枢纽规则配置 ==========
 
     /// <summary>
     /// 环形结构中每 N 个节点必须包含一个枢纽
     /// </summary>
-    public const int RING_HUB_REQUIRED_PER_NODES = 4;
+    public const int RING_HUB_REQUIRED_PER_NODES = 3;
 
     /// <summary>
     /// Lv4 机场最少航线数量（Buff #19）
     /// </summary>
-    public const int LV4_MIN_EDGE_COUNT = 5;
+    public const int LV4_MIN_EDGE_COUNT = 3;
 
     /// <summary>
     /// Lv5 机场最少航线数量（Buff #19）
     /// </summary>
-    public const int LV5_MIN_EDGE_COUNT = 7;
+    public const int LV5_MIN_EDGE_COUNT = 5;
 
     /// <summary>
     /// 超额设施闲置惩罚（Buff #19）
@@ -109,5 +109,5 @@ public static class PlayerData
     /// <summary>
     /// 玩家 Buff 基础价格
     /// </summary>
-    public const int PLAYER_BUFF_BASE_PRICE = 500;
+    public const int PLAYER_BUFF_BASE_PRICE = 5000;
 }

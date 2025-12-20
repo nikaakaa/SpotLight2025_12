@@ -59,10 +59,10 @@ public static class GameConfig
     public static readonly List<NodeConfig> NodeConfigs = new List<NodeConfig>
     {
         new NodeConfig(1001, "小型机场", "1级", 120, 200),
-        new NodeConfig(1002, "中型机场", "2级", 300, 500),
-        new NodeConfig(1003, "大型机场", "3级", 550, 1000),
-        new NodeConfig(1004, "国际机场", "4级", 850, 2000),
-        new NodeConfig(1005, "枢纽机场", "5级", 1200, 3000),
+        new NodeConfig(1002, "中型机场", "2级", 240, 500),
+        new NodeConfig(1003, "大型机场", "3级", 300, 1000),
+        new NodeConfig(1004, "国际机场", "4级", 400, 2000),
+        new NodeConfig(1005, "枢纽机场", "5级", 800, 3000),
     };
 
     /// <summary>
