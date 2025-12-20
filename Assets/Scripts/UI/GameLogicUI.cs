@@ -511,5 +511,64 @@ public class GameLogicUI : MonoBehaviour
     }
 
     #endregion
-}
 
+    #region 通知显示
+
+    [Header("通知样式")]
+    [SerializeField] private TMPro.TMP_FontAsset notificationFont;
+
+    private TMPro.TextMeshProUGUI notificationText;
+
+    /// <summary>
+    /// 显示屏幕中央通知（带动画）
+    /// </summary>
+    public async UniTask ShowCentralNotification(string text, float duration = 2.0f)
+    {
+        if (notificationText == null)
+        {
+            // 动态创建通知文本对象
+            var go = new GameObject("CentralNotification", typeof(RectTransform));
+            go.transform.SetParent(transform, false);
+
+            // 设置 RectTransform 全屏居中
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            notificationText = go.AddComponent<TMPro.TextMeshProUGUI>();
+            notificationText.alignment = TMPro.TextAlignmentOptions.Center;
+            notificationText.fontSize = 48; // 大字体
+            notificationText.color = Color.white;
+            notificationText.raycastTarget = false; // 不阻挡点击
+            notificationText.enableWordWrapping = false;
+
+            if (notificationFont != null)
+            {
+                notificationText.font = notificationFont;
+            }
+        }
+
+        notificationText.gameObject.SetActive(true);
+        notificationText.text = text;
+        notificationText.transform.localScale = Vector3.zero;
+        notificationText.alpha = 0f;
+
+        // 动画序列
+        var seq = DOTween.Sequence();
+        seq.Append(notificationText.transform.DOScale(1f, 0.4f).SetEase(Ease.OutBack)); // 弹出
+        seq.Join(notificationText.DOFade(1f, 0.3f));
+        seq.AppendInterval(duration); // 停留
+        seq.Append(notificationText.DOFade(0f, 0.3f)); // 消失
+        seq.OnComplete(() =>
+        {
+            if (notificationText != null) notificationText.gameObject.SetActive(false);
+        });
+
+        await seq.AsyncWaitForCompletion();
+    }
+
+    #endregion
+}

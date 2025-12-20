@@ -34,6 +34,15 @@ public static class SettlementAnimConfig
     /// <summary>恢复正常时长</summary>
     public const float RestoreDuration = 0.3f;
 
+    /// <summary>Buff 通知显示时长</summary>
+    public const float BuffNotificationDuration = 2.0f;
+
+    /// <summary>动画最大加速倍率（速度上限，1.0=不加速）</summary>
+    public const float MaxSpeedMultiplier = 10.0f;
+
+    /// <summary>每个结构动画速度增量（线性增长，例如0.2表示每多一个结构速度+0.2）</summary>
+    public const float SpeedIncrementPerStructure = 0.4f;
+
     // ========== 颜色配置 ==========
 
     /// <summary>变暗颜色</summary>
