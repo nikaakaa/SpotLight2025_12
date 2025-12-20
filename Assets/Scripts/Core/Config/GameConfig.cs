@@ -58,11 +58,11 @@ public static class GameConfig
     /// </summary>
     public static readonly List<NodeConfig> NodeConfigs = new List<NodeConfig>
     {
-        new NodeConfig(1001, "小型机场", "1级", 12, 200),
-        new NodeConfig(1002, "中型机场", "2级", 30, 500),
-        new NodeConfig(1003, "大型机场", "3级", 55, 1000),
-        new NodeConfig(1004, "国际机场", "4级", 85, 2000),
-        new NodeConfig(1005, "枢纽机场", "5级", 120, 3000),
+        new NodeConfig(1001, "小型机场", "1级", 12000, 20000),
+        new NodeConfig(1002, "中型机场", "2级", 30000, 50000),
+        new NodeConfig(1003, "大型机场", "3级", 55000, 100000),
+        new NodeConfig(1004, "国际机场", "4级", 85000, 200000),
+        new NodeConfig(1005, "枢纽机场", "5级", 120000, 300000),
     };
 
     /// <summary>
@@ -119,7 +119,7 @@ public static class GameConfig
     public static class TerrainCosts
     {
         // 基础移动成本（A* 寻路权重）
-        public static float DeepWater = 0f;       // 不可通过
+        public static float DeepWater = 3.0f;       // 不可通过
         public static float ShallowWater = 2.2f;  // 水上成本高
         public static float Coast = 1.15f;        // 海岸
         public static float Plain = 1.0f;         // 平原（基准）
@@ -128,7 +128,7 @@ public static class GameConfig
         public static float HighMountain = 0f;    // 不可通过
 
         // 建造成本倍率（影响航线建造费用）
-        public static float BuildDeepWater = 0f;
+        public static float BuildDeepWater = 1f;
         public static float BuildShallowWater = 1.35f;
         public static float BuildCoast = 1.15f;
         public static float BuildPlain = 1.0f;

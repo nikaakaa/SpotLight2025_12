@@ -64,7 +64,7 @@ public class RingStructure : StructureBase
     /// <summary>
     /// 枢纽不足惩罚倍率（默认1.0无惩罚）
     /// </summary>
-    public float HubPenaltyMultiplier { get; set; } = 1.0f;
+    public float HubPenaltyMultiplier { get; set; } = 0.8f;
 }
 
 /// <summary>

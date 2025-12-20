@@ -13,7 +13,7 @@ public static class PlayerData
     /// <summary>
     /// 初始资产
     /// </summary>
-    public const long INITIAL_ASSETS = 2000;
+    public const long INITIAL_ASSETS = 1000000;
 
     /// <summary>
     /// 初始回合数
@@ -25,7 +25,7 @@ public static class PlayerData
     /// <summary>
     /// 每格航线建造基础成本
     /// </summary>
-    public const int EDGE_BUILD_COST_PER_TILE = 8;
+    public const int EDGE_BUILD_COST_PER_TILE = 5;
 
     /// <summary>
     /// 拆除航线返还比例（0.0 - 1.0）
@@ -63,17 +63,17 @@ public static class PlayerData
     /// <summary>
     /// 环形结构基础倍率
     /// </summary>
-    public const float RING_BASE_MULTIPLIER = 1.45f;
+    public const float RING_BASE_MULTIPLIER = 2.0f;
 
     /// <summary>
     /// 单线结构基础倍率
     /// </summary>
-    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.1f;
+    public const float SINGLE_LINE_BASE_MULTIPLIER = 1f;
 
     /// <summary>
     /// 放射结构基础倍率（枢纽）
     /// </summary>
-    public const float RADIAL_BASE_MULTIPLIER = 1.25f;
+    public const float RADIAL_BASE_MULTIPLIER = 1.5f;
 
     // ========== 枢纽规则配置 ==========
 

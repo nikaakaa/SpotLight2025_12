@@ -1,24 +1,24 @@
 /// <summary>
-/// åœ°å½¢ç±»åž‹æžšä¸¾
+/// µØÐÎÀàÐÍÃ¶¾Ù
 /// </summary>
 public enum TerrainType
 {
-    DeepWater = 0,    // æ·±æµ· - ä¸å¯é€šè¿‡
-    ShallowWater = 1, // æµ…æµ· - å¯é€šè¿‡ï¼Œé«˜æˆæœ¬
-    Coast = 2,        // æµ·å²¸/æ²™æ»© - å¯é€šè¿‡
-    Plain = 3,        // å¹³åŽŸ - åŸºç¡€æˆæœ¬
-    Hill = 4,         // ä¸˜é™µ - ç¨é«˜æˆæœ¬
-    Mountain = 5,     // å±±åœ° - é«˜æˆæœ?
-    HighMountain = 6  // é«˜å±± - ä¸å¯é€šè¿‡
+    DeepWater = 0,    // Éîº£ - ²»¿ÉÍ¨¹ý
+    ShallowWater = 1, // Ç³º£ - ¿ÉÍ¨¹ý£¬µ«³É±¾½Ï¸ß
+    Coast = 2,        // º£°¶ / É³Ì² - ¿ÉÍ¨¹ý
+    Plain = 3,        // Æ½Ô­ - »ù´¡³É±¾
+    Hill = 4,         // ÇðÁê - ÉÔ¸ß³É±¾
+    Mountain = 5,     // É½µØ - ¸ß³É±¾
+    HighMountain = 6  // ¸ßÉ½ - ²»¿ÉÍ¨¹ý
 }
 
 /// <summary>
-/// TerrainType æ‰©å±•æ–¹æ³•
+/// TerrainType À©Õ¹·½·¨
 /// </summary>
 public static class TerrainTypeExtensions
 {
     /// <summary>
-    /// æ˜¯å¦å¯é€šè¿‡ï¼ˆèˆªçº¿å¯ä»¥ç»è¿‡ï¼‰
+    /// ÊÇ·ñ¿ÉÍ¨¹ý£¨º½Ïß¿ÉÒÔ¾­¹ý£©
     /// </summary>
     public static bool IsPassable(this TerrainType type)
     {
@@ -26,7 +26,7 @@ public static class TerrainTypeExtensions
     }
 
     /// <summary>
-    /// ç§»åŠ¨æˆæœ¬ï¼ˆç”¨äº?A* å¯»è·¯ï¼?
+    /// ÒÆ¶¯³É±¾£¨ÓÃÓÚ A* Ñ°Â·£©
     /// </summary>
     public static float GetMoveCost(this TerrainType type)
     {
@@ -34,7 +34,7 @@ public static class TerrainTypeExtensions
     }
 
     /// <summary>
-    /// å»ºé€ æˆæœ¬å€çŽ‡
+    /// ½¨Ôì³É±¾±¶ÂÊ
     /// </summary>
     public static float GetBuildCostMultiplier(this TerrainType type)
     {
@@ -42,7 +42,7 @@ public static class TerrainTypeExtensions
     }
 
     /// <summary>
-    /// æ˜¯å¦å¯ä»¥æ”¾ç½®åŸŽå¸‚èŠ‚ç‚¹
+    /// ÊÇ·ñ¿ÉÒÔ·ÅÖÃ³ÇÊÐ½Úµã
     /// </summary>
     public static bool CanPlaceCity(this TerrainType type)
     {
@@ -56,39 +56,50 @@ public static class TerrainTypeExtensions
     }
 
     /// <summary>
-    /// èŽ·å–åœ°å½¢é¢œè‰²ï¼ˆç”¨äºŽå¯è§†åŒ–ï¼?
+    /// »ñÈ¡µØÐÎÑÕÉ«£¨ÓÃÓÚ¿ÉÊÓ»¯£©
     /// </summary>
     public static UnityEngine.Color GetColor(this TerrainType type)
     {
         return type switch
         {
-            TerrainType.DeepWater => new UnityEngine.Color(0.1f, 0.2f, 0.5f),
-            TerrainType.ShallowWater => new UnityEngine.Color(0.2f, 0.4f, 0.7f),
-            TerrainType.Coast => new UnityEngine.Color(0.9f, 0.85f, 0.6f),
-            TerrainType.Plain => new UnityEngine.Color(0.4f, 0.7f, 0.3f),
-            TerrainType.Hill => new UnityEngine.Color(0.5f, 0.6f, 0.3f),
-            TerrainType.Mountain => new UnityEngine.Color(0.5f, 0.45f, 0.4f),
-            TerrainType.HighMountain => new UnityEngine.Color(0.9f, 0.9f, 0.95f),
+            // º£Ñó£ºÆ«Ìì¿ÕÀ¶£¬²»Æ«×Ï
+            TerrainType.DeepWater => new UnityEngine.Color(0.20f, 0.42f, 0.65f),
+            TerrainType.ShallowWater => new UnityEngine.Color(0.35f, 0.60f, 0.80f),
+
+            // º£°¶£º·Ç³£µ­µÄÉ³É«
+            TerrainType.Coast => new UnityEngine.Color(0.90f, 0.88f, 0.78f),
+
+            // Æ½Ô­£ºÇåÐÂµÄÖ²±»ÂÌ£¨²»Ó«¹â£©
+            TerrainType.Plain => new UnityEngine.Color(0.50f, 0.72f, 0.46f),
+
+            // ÇðÁê£ºÍ¬É«Ïà£¬¸ü°µÒ»µã
+            TerrainType.Hill => new UnityEngine.Color(0.55f, 0.84f, 0.60f),
+
+            // É½µØ£ºÆ«ÀäµÄ»ÒÂÌ / »Ò×Ø
+            TerrainType.Mountain => new UnityEngine.Color(0.58f, 0.56f, 0.52f),
+
+            // ¸ßÉ½£ºÔÆÑ©°×£¨²»ÊÇ´¿°×£©
+            TerrainType.HighMountain => new UnityEngine.Color(0.92f, 0.94f, 0.96f),
+
             _ => UnityEngine.Color.magenta
         };
     }
 
     /// <summary>
-    /// èŽ·å–åœ°å½¢åç§°
+    /// »ñÈ¡µØÐÎÃû³Æ
     /// </summary>
     public static string GetName(this TerrainType type)
     {
         return type switch
         {
-            TerrainType.DeepWater => "æ·±æµ·",
-            TerrainType.ShallowWater => "æµ…æµ·",
-            TerrainType.Coast => "æµ·å²¸",
-            TerrainType.Plain => "å¹³åŽŸ",
-            TerrainType.Hill => "ä¸˜é™µ",
-            TerrainType.Mountain => "å±±åœ°",
-            TerrainType.HighMountain => "é«˜å±±",
-            _ => "æœªçŸ¥"
+            TerrainType.DeepWater => "Éîº£",
+            TerrainType.ShallowWater => "Ç³º£",
+            TerrainType.Coast => "º£°¶",
+            TerrainType.Plain => "Æ½Ô­",
+            TerrainType.Hill => "ÇðÁê",
+            TerrainType.Mountain => "É½µØ",
+            TerrainType.HighMountain => "¸ßÉ½",
+            _ => "Î´Öª"
         };
     }
 }
-
