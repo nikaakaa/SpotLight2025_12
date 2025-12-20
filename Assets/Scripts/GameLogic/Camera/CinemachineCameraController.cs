@@ -7,6 +7,9 @@ using UnityEngine;
 /// </summary>
 public class CinemachineCameraController : MonoBehaviour
 {
+    // ========== 单例 ==========
+    public static CinemachineCameraController Instance { get; private set; }
+
     [Header("平移设置")]
     [SerializeField] private float panSpeed = 0.5f;
     [SerializeField] private float panSmoothing = 0.1f;  // 0=无缓动, 1=很慢
@@ -17,10 +20,24 @@ public class CinemachineCameraController : MonoBehaviour
     [SerializeField] private float maxZoom = 100f;
     [SerializeField] private float zoomSmoothing = 0.1f;
 
+    [Header("移动动画设置")]
+    [SerializeField] private float moveDuration = 0.5f;  // 移动动画时长
+
     private Camera cam;
     private Vector3 lastMousePos;
     private float targetZoom;
     private bool isOrthographic;
+
+    // 移动动画状态
+    private bool isMoving = false;
+    private Vector3 moveStartPos;
+    private Vector3 moveTargetPos;
+    private float moveTimer = 0f;
+
+    void Awake()
+    {
+        Instance = this;
+    }
 
     void Start()
     {
@@ -50,8 +67,95 @@ public class CinemachineCameraController : MonoBehaviour
 
     void Update()
     {
-        HandlePan();
+        // 优先处理移动动画
+        if (isMoving)
+        {
+            UpdateMoveAnimation();
+        }
+        else
+        {
+            // 按 Home 键回到中心点
+            if (Input.GetKeyDown(KeyCode.Home) || Input.GetKeyDown(KeyCode.H))
+            {
+                MoveToCenter();
+            }
+
+            HandlePan();
+        }
+
         HandleZoom();
+    }
+
+    // ========== 公开 API ==========
+
+    /// <summary>
+    /// 移动摄像机到指定世界坐标（带缓动）
+    /// </summary>
+    /// <param name="worldPos">目标世界坐标（XY平面）</param>
+    /// <param name="duration">动画时长（可选，默认使用 moveDuration）</param>
+    public void MoveTo(Vector3 worldPos, float duration = -1f)
+    {
+        moveStartPos = transform.position;
+        moveTargetPos = new Vector3(worldPos.x, worldPos.y, transform.position.z);
+        moveTimer = 0f;
+        moveDuration = duration > 0 ? duration : this.moveDuration;
+        isMoving = true;
+
+        Debug.Log($"[CameraController] 移动到 ({worldPos.x:F1}, {worldPos.y:F1})");
+    }
+
+    /// <summary>
+    /// 移动摄像机到指定六边形坐标（带缓动）
+    /// </summary>
+    public void MoveToHex(HexCoord hexCoord, float duration = -1f)
+    {
+        Vector3 worldPos = HexConverter2D.HexToWorld(hexCoord);
+        MoveTo(worldPos, duration);
+    }
+
+    /// <summary>
+    /// 回到地图中心点（带缓动）
+    /// </summary>
+    public void MoveToCenter(float duration = -1f)
+    {
+        MoveTo(Vector3.zero, duration);
+        Debug.Log("[CameraController] 回到中心点");
+    }
+
+    /// <summary>
+    /// 立即设置摄像机位置（无动画）
+    /// </summary>
+    public void SetPositionImmediate(Vector3 worldPos)
+    {
+        transform.position = new Vector3(worldPos.x, worldPos.y, transform.position.z);
+        isMoving = false;
+    }
+
+    /// <summary>
+    /// 立即回到中心点（无动画）
+    /// </summary>
+    public void SetCenterImmediate()
+    {
+        SetPositionImmediate(Vector3.zero);
+    }
+
+    // ========== 内部方法 ==========
+
+    private void UpdateMoveAnimation()
+    {
+        moveTimer += Time.deltaTime;
+        float t = Mathf.Clamp01(moveTimer / moveDuration);
+
+        // 使用 SmoothStep 缓动
+        float smoothT = t * t * (3f - 2f * t);
+
+        transform.position = Vector3.Lerp(moveStartPos, moveTargetPos, smoothT);
+
+        if (t >= 1f)
+        {
+            isMoving = false;
+            transform.position = moveTargetPos;
+        }
     }
 
     void HandlePan()
@@ -107,5 +211,3 @@ public class CinemachineCameraController : MonoBehaviour
         }
     }
 }
-
-

@@ -14,7 +14,7 @@ public static class Market_AllNodeIncome_Module
     {
         if (args?.Length < 2) return;
         var modifier = args[1] as IncomeModifier;
-        modifier.Multiplier *= 0.8f;
+        modifier.Multiplier *= 0.9f;
     }
 }
 
@@ -26,7 +26,7 @@ public static class Market_AllStructureMultiplier_Module
     {
         if (args?.Length < 2) return;
         var modifier = args[1] as MultiplierModifier;
-        modifier.Multiplier *= 0.8f;
+        modifier.Multiplier *= 0.9f;
     }
 }
 
@@ -40,7 +40,7 @@ public static class Market_RingMultiplier_Module
         var structType = (E_StructureType)args[0];
         var modifier = args[1] as MultiplierModifier;
         if (structType == E_StructureType.Ring)
-            modifier.Multiplier *= 0.7f;
+            modifier.Multiplier *= 0.85f;
     }
 }
 
@@ -54,7 +54,7 @@ public static class Market_SingleLineMultiplier_Module
         var structType = (E_StructureType)args[0];
         var modifier = args[1] as MultiplierModifier;
         if (structType == E_StructureType.SingleLine)
-            modifier.Multiplier *= 0.8f;
+            modifier.Multiplier *= 0.9f;
     }
 }
 
@@ -68,7 +68,7 @@ public static class Market_RadialIncome_Module
         var structType = (E_StructureType)args[0];
         var modifier = args[1] as MultiplierModifier;
         if (structType == E_StructureType.Radial)
-            modifier.Multiplier *= 0.7f;
+            modifier.Multiplier *= 0.85f;
     }
 }
 
@@ -85,7 +85,7 @@ public static class Market_Level1Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 1) modifier.Multiplier *= 0.7f;
+        if (nodeLevel == 1) modifier.Multiplier *= 0.85f;
     }
 }
 
@@ -97,7 +97,7 @@ public static class Market_Level2Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 2) modifier.Multiplier *= 0.7f;
+        if (nodeLevel == 2) modifier.Multiplier *= 0.85f;
     }
 }
 
@@ -109,7 +109,7 @@ public static class Market_Level3Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 3) modifier.Multiplier *= 0.7f;
+        if (nodeLevel == 3) modifier.Multiplier *= 0.85f;
     }
 }
 
@@ -121,7 +121,7 @@ public static class Market_Level4Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 4) modifier.Multiplier *= 0.7f;
+        if (nodeLevel == 4) modifier.Multiplier *= 0.85f;
     }
 }
 
@@ -133,7 +133,7 @@ public static class Market_Level5Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 5) modifier.Multiplier *= 0.7f;
+        if (nodeLevel == 5) modifier.Multiplier *= 0.85f;
     }
 }
 
@@ -147,7 +147,7 @@ public static class Market_HubIncome_Module
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
         // 枢纽 = lv4 或 lv5
-        if (nodeLevel >= 4) modifier.Multiplier *= 0.7f;
+        if (nodeLevel >= 4) modifier.Multiplier *= 0.85f;
     }
 }
 
@@ -163,7 +163,7 @@ public static class Market_AllEdgeCost_Module
     {
         if (args?.Length < 2) return;
         var modifier = args[1] as IncomeModifier;
-        modifier.Multiplier *= 1.5f;
+        modifier.Multiplier *= 1.25f;
     }
 }
 
@@ -180,8 +180,8 @@ public static class Market_SmallAirportRevival_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel <= 2) modifier.Multiplier *= 1.5f;
-        else if (nodeLevel >= 4) modifier.Multiplier *= 0.6f;
+        if (nodeLevel <= 2) modifier.Multiplier *= 1.3f;
+        else if (nodeLevel >= 4) modifier.Multiplier *= 0.75f;
     }
 }
 
@@ -194,7 +194,7 @@ public static class Market_MediumAirportSurplus_Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 3) modifier.Multiplier *= 0.6f;
+        if (nodeLevel == 3) modifier.Multiplier *= 0.8f;
     }
 }
 
@@ -215,7 +215,7 @@ public static class Player_Level1Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 1) modifier.FlatBonus += 10;
+        if (nodeLevel == 1) modifier.FlatBonus += 3;
     }
 }
 
@@ -227,7 +227,7 @@ public static class Player_Level2Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 2) modifier.FlatBonus += 25;
+        if (nodeLevel == 2) modifier.FlatBonus += 8;
     }
 }
 
@@ -239,7 +239,7 @@ public static class Player_Level3Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 3) modifier.FlatBonus += 50;
+        if (nodeLevel == 3) modifier.FlatBonus += 15;
     }
 }
 
@@ -251,7 +251,7 @@ public static class Player_Level4Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 4) modifier.FlatBonus += 100;
+        if (nodeLevel == 4) modifier.FlatBonus += 25;
     }
 }
 
@@ -263,7 +263,7 @@ public static class Player_Level5Income_Module
         if (args?.Length < 2) return;
         int nodeLevel = (int)args[0];
         var modifier = args[1] as IncomeModifier;
-        if (nodeLevel == 5) modifier.FlatBonus += 200;
+        if (nodeLevel == 5) modifier.FlatBonus += 35;
     }
 }
 

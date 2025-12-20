@@ -23,12 +23,20 @@ public class ConnectModifyRouteState : LeafState<GameProcedureContext>
 
     protected override void OnEnter(GameProcedureContext ctx)
     {
-        Debug.Log($"[{Name}] Enter - 进入路线编辑模式（左键连线，右键按住删除）");
+        Debug.Log($"[{Name}] Enter - 进入路线编辑模式（左键连线，右键按住删除，Space 键确认）");
         ClearSelection();
     }
 
     protected override void OnUpdate(GameProcedureContext ctx)
     {
+        // 按 Space 键确认，进入结算阶段
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            Debug.Log($"[{Name}] 按下 Space 键，确认航线编辑完成");
+            ctx.Next();
+            return;
+        }
+
         // 检测右键状态
         if (Input.GetMouseButtonDown(1))
         {

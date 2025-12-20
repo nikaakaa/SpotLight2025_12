@@ -63,34 +63,34 @@ public static class BuffRegistry
         Register(new BuffData { id = 9999, buffName = "TestBuff_SetMoney", description = "测试：设置金币为10000", isForever = true });
 
         // ========== 市场趋势 Buff (ID: 1-21) ==========
-        Register(new BuffData { id = 1, buffName = "Market_AllNodeIncome", description = "市场疲软1：所有节点收益×0.8", duration = 1 });
-        Register(new BuffData { id = 2, buffName = "Market_AllStructureMultiplier", description = "市场疲软2：所有结构倍率×0.8", duration = 1 });
-        Register(new BuffData { id = 3, buffName = "Market_RingMultiplier", description = "环形航线紧张：环结构倍率×0.7", duration = 1 });
-        Register(new BuffData { id = 4, buffName = "Market_SingleLineMultiplier", description = "直达航班疲软：单线结构倍率×0.8", duration = 1 });
-        Register(new BuffData { id = 5, buffName = "Market_RadialIncome", description = "枢纽运力不足：放射结构收益×0.7", duration = 1 });
-        Register(new BuffData { id = 6, buffName = "Market_Level1Income", description = "小型机场客流减少：lv1节点收益×0.7", duration = 1 });
-        Register(new BuffData { id = 7, buffName = "Market_Level2Income", description = "通用机场客流减少：lv2节点收益×0.7", duration = 1 });
-        Register(new BuffData { id = 8, buffName = "Market_Level3Income", description = "中型机场客流减少：lv3节点收益×0.7", duration = 1 });
-        Register(new BuffData { id = 9, buffName = "Market_Level4Income", description = "大型机场客流减少：lv4节点收益×0.7", duration = 1 });
-        Register(new BuffData { id = 10, buffName = "Market_Level5Income", description = "巨型机场客流减少：lv5节点收益×0.7", duration = 1 });
-        Register(new BuffData { id = 11, buffName = "Market_HubIncome", description = "枢纽资源紧张：枢纽节点收益×0.7", duration = 1 });
-        Register(new BuffData { id = 12, buffName = "Market_CrossRegionPenalty", description = "跨区审批受限：跨区成本×1.5，倍率-0.2", duration = 1 });
-        Register(new BuffData { id = 13, buffName = "Market_AllEdgeCost", description = "燃油上涨：所有航线成本×1.5", duration = 1 });
+        Register(new BuffData { id = 1, buffName = "Market_AllNodeIncome", description = "市场疲软1：所有节点收益×0.9", duration = 1 });
+        Register(new BuffData { id = 2, buffName = "Market_AllStructureMultiplier", description = "市场疲软2：所有结构倍率×0.9", duration = 1 });
+        Register(new BuffData { id = 3, buffName = "Market_RingMultiplier", description = "环形航线紧张：环结构倍率×0.85", duration = 1 });
+        Register(new BuffData { id = 4, buffName = "Market_SingleLineMultiplier", description = "直达航班疲软：单线结构倍率×0.9", duration = 1 });
+        Register(new BuffData { id = 5, buffName = "Market_RadialIncome", description = "枢纽运力不足：放射结构收益×0.85", duration = 1 });
+        Register(new BuffData { id = 6, buffName = "Market_Level1Income", description = "小型机场客流减少：lv1节点收益×0.85", duration = 1 });
+        Register(new BuffData { id = 7, buffName = "Market_Level2Income", description = "通用机场客流减少：lv2节点收益×0.85", duration = 1 });
+        Register(new BuffData { id = 8, buffName = "Market_Level3Income", description = "中型机场客流减少：lv3节点收益×0.85", duration = 1 });
+        Register(new BuffData { id = 9, buffName = "Market_Level4Income", description = "大型机场客流减少：lv4节点收益×0.85", duration = 1 });
+        Register(new BuffData { id = 10, buffName = "Market_Level5Income", description = "巨型机场客流减少：lv5节点收益×0.85", duration = 1 });
+        Register(new BuffData { id = 11, buffName = "Market_HubIncome", description = "枢纽资源紧张：枢纽节点收益×0.85", duration = 1 });
+        Register(new BuffData { id = 12, buffName = "Market_CrossRegionPenalty", description = "跨区审批受限：跨区成本×1.25，倍率-0.2", duration = 1 });
+        Register(new BuffData { id = 13, buffName = "Market_AllEdgeCost", description = "燃油上涨：所有航线成本×1.25", duration = 1 });
         Register(new BuffData { id = 14, buffName = "Market_SingleEdgePenalty", description = "空载惩罚：单边节点收益-30%", duration = 1 });
         Register(new BuffData { id = 15, buffName = "Market_ExpansionPenalty", description = "反扩张：新增≥2节点，成本+30%", duration = 1 });
         Register(new BuffData { id = 16, buffName = "Market_StructureDiminishing", description = "鼓励修改：同类≥3，每多1倍率-0.1", duration = 1 });
         Register(new BuffData { id = 17, buffName = "Market_Polarization", description = "市场极化：最高+80%，其余-80%", duration = 1 });
         Register(new BuffData { id = 18, buffName = "Market_UpgradeBlocked", description = "审查制度：禁止新建/升级机场", duration = 1 });
-        Register(new BuffData { id = 19, buffName = "Market_HighLevelUnderutilized", description = "设施闲置：lv4/5航线不足，收益-60%", duration = 1 });
-        Register(new BuffData { id = 20, buffName = "Market_SmallAirportRevival", description = "小型复苏：lv1-2×1.5，lv4-5×0.6", duration = 1 });
-        Register(new BuffData { id = 21, buffName = "Market_MediumAirportSurplus", description = "中型过剩：lv3收益×0.6，升级×0.7", duration = 1 });
+        Register(new BuffData { id = 19, buffName = "Market_HighLevelUnderutilized", description = "设施闲置：lv4/5航线不足，收益-20%", duration = 1 });
+        Register(new BuffData { id = 20, buffName = "Market_SmallAirportRevival", description = "小型复苏：lv1-2×1.3，lv4-5×0.75", duration = 1 });
+        Register(new BuffData { id = 21, buffName = "Market_MediumAirportSurplus", description = "中型过剩：lv3收益×0.8，升级×0.7", duration = 1 });
 
         // ========== 玩家升级 Buff (ID: 101-112) ==========
-        Register(new BuffData { id = 101, buffName = "Player_Level1Income", description = "小型机场升级：lv1收益+10", isForever = true });
-        Register(new BuffData { id = 102, buffName = "Player_Level2Income", description = "通用机场升级：lv2收益+25", isForever = true });
-        Register(new BuffData { id = 103, buffName = "Player_Level3Income", description = "中型机场升级：lv3收益+50", isForever = true });
-        Register(new BuffData { id = 104, buffName = "Player_Level4Income", description = "大型机场升级：lv4收益+100", isForever = true });
-        Register(new BuffData { id = 105, buffName = "Player_Level5Income", description = "巨型机场升级：lv5收益+200", isForever = true });
+        Register(new BuffData { id = 101, buffName = "Player_Level1Income", description = "小型机场升级：lv1收益+3", isForever = true });
+        Register(new BuffData { id = 102, buffName = "Player_Level2Income", description = "通用机场升级：lv2收益+8", isForever = true });
+        Register(new BuffData { id = 103, buffName = "Player_Level3Income", description = "中型机场升级：lv3收益+15", isForever = true });
+        Register(new BuffData { id = 104, buffName = "Player_Level4Income", description = "大型机场升级：lv4收益+25", isForever = true });
+        Register(new BuffData { id = 105, buffName = "Player_Level5Income", description = "巨型机场升级：lv5收益+35", isForever = true });
         Register(new BuffData { id = 106, buffName = "Player_RingMultiplier", description = "环形密度提升：环倍率+0.2", isForever = true });
         Register(new BuffData { id = 107, buffName = "Player_SingleLineMultiplier", description = "直达密度提升：单线倍率+0.1", isForever = true });
         Register(new BuffData { id = 108, buffName = "Player_RadialMultiplier", description = "枢纽密度提升：放射倍率+0.1", isForever = true });

@@ -63,17 +63,17 @@ public static class PlayerData
     /// <summary>
     /// 环形结构基础倍率
     /// </summary>
-    public const float RING_BASE_MULTIPLIER = 1.5f;
+    public const float RING_BASE_MULTIPLIER = 1.45f;
 
     /// <summary>
     /// 单线结构基础倍率
     /// </summary>
-    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.0f;
+    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.1f;
 
     /// <summary>
     /// 放射结构基础倍率（枢纽）
     /// </summary>
-    public const float RADIAL_BASE_MULTIPLIER = 1.2f;
+    public const float RADIAL_BASE_MULTIPLIER = 1.25f;
 
     // ========== 枢纽规则配置 ==========
 
@@ -85,24 +85,24 @@ public static class PlayerData
     /// <summary>
     /// Lv4 机场最少航线数量（Buff #19）
     /// </summary>
-    public const int LV4_MIN_EDGE_COUNT = 6;
+    public const int LV4_MIN_EDGE_COUNT = 5;
 
     /// <summary>
     /// Lv5 机场最少航线数量（Buff #19）
     /// </summary>
-    public const int LV5_MIN_EDGE_COUNT = 8;
+    public const int LV5_MIN_EDGE_COUNT = 7;
 
     /// <summary>
     /// 超额设施闲置惩罚（Buff #19）
     /// </summary>
-    public const float UNDERUTILIZED_PENALTY = 0.6f;
+    public const float UNDERUTILIZED_PENALTY = 0.8f;
 
     // ========== 市场趋势 Buff 配置 ==========
 
     /// <summary>
     /// 每回合随机市场 Buff 数量
     /// </summary>
-    public const int MARKET_BUFF_COUNT_PER_ROUND = 2;
+    public const int MARKET_BUFF_COUNT_PER_ROUND = 1;
 
     // ========== 商店配置 ==========
 

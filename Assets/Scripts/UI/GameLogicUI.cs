@@ -201,11 +201,12 @@ public class GameLogicUI : MonoBehaviour
 
         var rows = new List<string>();
 
-        rows.Add("【玩家永久 Buff】");
-        AppendBuffRows(rows, player.PlayerBuffHandler);
+        // 使用配置的标题文本
+        rows.Add(BuffDisplayConfig.MarketBuffTitle);
+        AppendBuffRows(rows, player.MarketBuffHandler, true);
         rows.Add(" ");
-        rows.Add("【市场趋势 Buff】");
-        AppendBuffRows(rows, player.MarketBuffHandler);
+        rows.Add(BuffDisplayConfig.PlayerBuffTitle);
+        AppendBuffRows(rows, player.PlayerBuffHandler, false);
 
         EnsureBuffItemCount(rows.Count);
         for (int i = 0; i < rows.Count; i++)
@@ -214,7 +215,7 @@ public class GameLogicUI : MonoBehaviour
         }
     }
 
-    private static void AppendBuffRows(List<string> rows, BuffHandler handler)
+    private static void AppendBuffRows(List<string> rows, BuffHandler handler, bool isMarketBuff)
     {
         if (handler == null)
         {
@@ -237,10 +238,26 @@ public class GameLogicUI : MonoBehaviour
                 continue;
             }
 
-            // BuffInfo 实现了 IBuffTicker，但这里只能通过公开属性读取
-            string name = !string.IsNullOrWhiteSpace(buff.buffData.buffName) ? buff.buffData.buffName : $"Buff_{buff.buffData.id}";
-            string duration = buff.buffData.isForever ? "∞" : buff.DurationTimer.ToString();
-            rows.Add($"  ID:{buff.buffData.id} | {name} | 层:{buff.CurStack} | 时长:{duration}");
+            int buffId = buff.buffData.id;
+
+            // 优先使用 BuffDisplayConfig 配置的显示文本
+            string displayText = BuffDisplayConfig.GetBuffDisplayText(buffId);
+
+            if (!string.IsNullOrEmpty(displayText))
+            {
+                // 使用配置的文本
+                rows.Add($"  {displayText}");
+            }
+            else
+            {
+                // 如果配置中没有，使用 BuffData 的 description 或 buffName
+                string fallbackText = !string.IsNullOrWhiteSpace(buff.buffData.description)
+                    ? buff.buffData.description
+                    : (!string.IsNullOrWhiteSpace(buff.buffData.buffName)
+                        ? buff.buffData.buffName
+                        : $"Buff_{buffId}");
+                rows.Add($"  {fallbackText}");
+            }
         }
     }
 

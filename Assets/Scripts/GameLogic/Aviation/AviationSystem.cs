@@ -380,6 +380,57 @@ public class AviationSystem
     }
 
     /// <summary>
+    /// 使用簇状生长算法生成节点（推荐使用）
+    /// 特点：大部分节点靠近已有节点生成，越高级的节点越稀有且生成越远
+    /// </summary>
+    /// <param name="count">生成数量</param>
+    /// <param name="round">当前回合数（影响节点等级概率）</param>
+    /// <param name="parent">父物体</param>
+    /// <returns>生成的节点坐标列表（用于摄像机跟随等）</returns>
+    public List<HexCoord> GenerateNodesWithClusterGrowth(int count, int round, Transform parent = null)
+    {
+        var generatedCoords = new List<HexCoord>();
+
+        // 1. 获取所有可放置城市的坐标
+        List<HexCoord> candidates;
+
+        if (TerrainSystem.Instance != null && TerrainSystem.Instance.terrainGrid.Count > 0)
+        {
+            candidates = TerrainSystem.Instance.GetAllCityPlaceableCoords();
+            Debug.Log($"[AviationSystem] 簇状生长：从地形系统获取 {candidates.Count} 个候选位置");
+        }
+        else
+        {
+            candidates = HexCoord.Zero.GetHexesInRange(GameConfig.MAP_RADIUS);
+            Debug.LogWarning("[AviationSystem] 地形系统未初始化，使用默认范围");
+        }
+
+        // 2. 获取已有节点坐标
+        var existingCoords = new List<HexCoord>(nodeByCoord.Keys);
+
+        // 3. 使用簇状生长算法生成
+        var spawnResults = ClusterGrowthSpawner.Generate(
+            existingCoords,
+            candidates,
+            count,
+            round
+        );
+
+        // 4. 在选中的坐标上创建城市
+        foreach (var (coord, level) in spawnResults)
+        {
+            // 根据等级获取对应的节点配置
+            int configId = GameConfig.GetNodeConfigIdByLevel(level);
+            AddNodeWithView(configId, coord, parent);
+            generatedCoords.Add(coord);
+        }
+
+        Debug.Log($"[AviationSystem] 簇状生长：生成了 {spawnResults.Count} 个城市节点（回合 {round}）");
+
+        return generatedCoords;
+    }
+
+    /// <summary>
     /// 旧版随机生成节点（不使用地形系统，保留兼容性）
     /// </summary>
     [System.Obsolete("请使用新版 GenerateRandomNodes")]
