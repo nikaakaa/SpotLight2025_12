@@ -25,12 +25,12 @@ public static class PlayerData
     /// <summary>
     /// 每格航线建造基础成本
     /// </summary>
-    public const int EDGE_BUILD_COST_PER_TILE = 10;
+    public const int EDGE_BUILD_COST_PER_TILE = 8;
 
     /// <summary>
     /// 拆除航线返还比例（0.0 - 1.0）
     /// </summary>
-    public const float EDGE_REMOVE_REFUND_RATE = 0.5f;
+    public const float EDGE_REMOVE_REFUND_RATE = 0.75f;
 
     // ========== 节点成本配置 ==========
 
@@ -38,25 +38,25 @@ public static class PlayerData
     /// 节点升级基础成本
     /// 节点成本 = 节点等级 × NODE_UPGRADE_BASE_COST
     /// </summary>
-    public const int NODE_UPGRADE_BASE_COST = 100;
+    public const int NODE_UPGRADE_BASE_COST = 80;
 
     // ========== 结算规则配置 ==========
 
     /// <summary>
     /// 破产阈值（资产低于此值判定破产）
     /// </summary>
-    public const long BANKRUPTCY_THRESHOLD = 0;
+    public const long BANKRUPTCY_THRESHOLD = -2000;
 
     /// <summary>
     /// 反盲目扩张惩罚阈值（Buff #15）
     /// 本回合新增节点数 >= 此值时触发
     /// </summary>
-    public const int EXPANSION_PENALTY_THRESHOLD = 2;
+    public const int EXPANSION_PENALTY_THRESHOLD = 4;
 
     /// <summary>
     /// 反盲目扩张惩罚倍率（Buff #15）
     /// </summary>
-    public const float EXPANSION_PENALTY_MULTIPLIER = 1.3f;
+    public const float EXPANSION_PENALTY_MULTIPLIER = 1.15f;
 
     // ========== 结构倍率配置 ==========
 

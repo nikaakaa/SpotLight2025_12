@@ -17,6 +17,11 @@ MonoBehaviour:
     m_SerializedData: []
   m_GUID: 559176bffcc8d1c43afc65d02ee6e545
   m_SerializeEntries:
+  - m_GUID: 3d39095a092748640a8aa634c1c796aa
+    m_Address: CityNode
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: dea008d6f7e484c41b9379c37607b094
     m_Address: tbnode
     m_ReadOnly: 0
