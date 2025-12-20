@@ -13,7 +13,7 @@ public static class PlayerData
     /// <summary>
     /// 初始资产
     /// </summary>
-    public const long INITIAL_ASSETS = 1000000;
+    public const long INITIAL_ASSETS = 10000;
 
     /// <summary>
     /// 初始回合数
@@ -25,7 +25,7 @@ public static class PlayerData
     /// <summary>
     /// 每格航线建造基础成本
     /// </summary>
-    public const int EDGE_BUILD_COST_PER_TILE = 5;
+    public const int EDGE_BUILD_COST_PER_TILE = 50;
 
     /// <summary>
     /// 拆除航线返还比例（0.0 - 1.0）
@@ -38,14 +38,14 @@ public static class PlayerData
     /// 节点升级基础成本
     /// 节点成本 = 节点等级 × NODE_UPGRADE_BASE_COST
     /// </summary>
-    public const int NODE_UPGRADE_BASE_COST = 80;
+    public const int NODE_UPGRADE_BASE_COST = 200;
 
     // ========== 结算规则配置 ==========
 
     /// <summary>
     /// 破产阈值（资产低于此值判定破产）
     /// </summary>
-    public const long BANKRUPTCY_THRESHOLD = -2000;
+    public const long BANKRUPTCY_THRESHOLD = 0;
 
     /// <summary>
     /// 反盲目扩张惩罚阈值（Buff #15）
@@ -68,7 +68,7 @@ public static class PlayerData
     /// <summary>
     /// 单线结构基础倍率
     /// </summary>
-    public const float SINGLE_LINE_BASE_MULTIPLIER = 1f;
+    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.2f;
 
     /// <summary>
     /// 放射结构基础倍率（枢纽）

@@ -58,11 +58,11 @@ public static class GameConfig
     /// </summary>
     public static readonly List<NodeConfig> NodeConfigs = new List<NodeConfig>
     {
-        new NodeConfig(1001, "小型机场", "1级", 12000, 20000),
-        new NodeConfig(1002, "中型机场", "2级", 30000, 50000),
-        new NodeConfig(1003, "大型机场", "3级", 55000, 100000),
-        new NodeConfig(1004, "国际机场", "4级", 85000, 200000),
-        new NodeConfig(1005, "枢纽机场", "5级", 120000, 300000),
+        new NodeConfig(1001, "小型机场", "1级", 120, 200),
+        new NodeConfig(1002, "中型机场", "2级", 300, 500),
+        new NodeConfig(1003, "大型机场", "3级", 550, 1000),
+        new NodeConfig(1004, "国际机场", "4级", 850, 2000),
+        new NodeConfig(1005, "枢纽机场", "5级", 1200, 3000),
     };
 
     /// <summary>
