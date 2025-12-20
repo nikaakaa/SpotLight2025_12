@@ -118,17 +118,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 71c1514a6bd24e1e882cebbe1904ce04, type: 3}
-  m_Name: GlowSansSC-Normal-ExtraBold SDF
+  m_Name: GlowSansSC-Normal-ExtraBold SDF 1
   m_EditorClassIdentifier: 
-  hashCode: -1215961295
+  hashCode: -1331922016
   material: {fileID: -8750427269157294223}
-  materialHashCode: 1802671217
+  materialHashCode: 878471552
   m_Version: 1.1.0
   m_SourceFontFileGUID: 2aa234094be6fec4497344be28b701cb
   m_SourceFontFile_EditorRef: {fileID: 12800000, guid: 2aa234094be6fec4497344be28b701cb,
     type: 3}
-  m_SourceFontFile: {fileID: 12800000, guid: 2aa234094be6fec4497344be28b701cb, type: 3}
-  m_AtlasPopulationMode: 1
+  m_SourceFontFile: {fileID: 0}
+  m_AtlasPopulationMode: 0
   m_FaceInfo:
     m_FaceIndex: 0
     m_FamilyName: Glow Sans SC
@@ -2163,7 +2163,8 @@ MonoBehaviour:
   m_FontFeatureTable:
     m_GlyphPairAdjustmentRecords: []
   fallbackFontAssets: []
-  m_FallbackFontAssetTable: []
+  m_FallbackFontAssetTable:
+  - {fileID: 11400000, guid: ed2738ca4ca49934d92c53476276718e, type: 2}
   m_CreationSettings:
     sourceFontFileName: 
     sourceFontFileGUID: 2aa234094be6fec4497344be28b701cb
@@ -2229,7 +2230,7 @@ Texture2D:
   m_MipsStripped: 0
   m_TextureFormat: 1
   m_MipCount: 1
-  m_IsReadable: 1
+  m_IsReadable: 0
   m_IsPreProcessed: 0
   m_IgnoreMipmapLimit: 0
   m_MipmapLimitGroupName: 
