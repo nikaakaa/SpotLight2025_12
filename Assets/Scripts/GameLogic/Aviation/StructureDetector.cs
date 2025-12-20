@@ -214,51 +214,30 @@ public static class StructureDetector
     }
 
     #endregion
-
     #region 单线结构检测
 
     /// <summary>
-    /// 检测所有单线结构（度数为1的节点对）
+    /// 检测所有单线结构（每条边都是一个单线）
     /// </summary>
     public static void DetectSingleLines(AviationSystem system, List<SingleLineStructure> singleLines)
     {
         if (system == null) return;
 
-        var usedEdges = new HashSet<int>();
-
-        foreach (var kvp in system.aviationNodeDict)
+        foreach (var kvp in system.aviationEdgeDict)
         {
-            var node = kvp.Value;
+            var edge = kvp.Value;
 
-            // 只有1条边的节点
-            if (node.edges.Count == 1)
+            var singleLine = new SingleLineStructure
             {
-                var edge = node.edges[0];
+                StructureId = ++structureIdCounter,
+                ContainsHub = edge.fromNode.edges.Count >= 3 || edge.toNode.edges.Count >= 3
+            };
 
-                // 跳过已处理的边
-                if (usedEdges.Contains(edge.edgeIndex)) continue;
+            singleLine.Nodes.Add(edge.fromNode);
+            singleLine.Nodes.Add(edge.toNode);
+            singleLine.Edges.Add(edge);
 
-                var neighbor = edge.fromNode == node ? edge.toNode : edge.fromNode;
-
-                // 两端都只有1条边才是真正的单线
-                if (neighbor.edges.Count == 1)
-                {
-                    var singleLine = new SingleLineStructure
-                    {
-                        StructureId = ++structureIdCounter,
-                        ContainsHub = false
-                    };
-
-                    singleLine.Nodes.Add(node);
-                    singleLine.Nodes.Add(neighbor);
-                    singleLine.Edges.Add(edge);
-
-                    singleLines.Add(singleLine);
-                    usedEdges.Add(edge.edgeIndex);
-
-                    Debug.Log($"[StructureDetector] 发现单线结构: {node.nodeData?.Name} - {neighbor.nodeData?.Name}");
-                }
-            }
+            singleLines.Add(singleLine);
         }
     }
 

@@ -13,7 +13,7 @@ public static class PlayerData
     /// <summary>
     /// 初始资产
     /// </summary>
-    public const long INITIAL_ASSETS = 1000;
+    public const long INITIAL_ASSETS = 1000000;
 
     /// <summary>
     /// 初始回合数

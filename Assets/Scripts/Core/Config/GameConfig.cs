@@ -11,19 +11,12 @@ public static class GameConfig
     /// <summary>
     /// 地图半径（六边形格子数）
     /// </summary>
-    public const int MAP_RADIUS = 200;
+    public const int MAP_RADIUS = 100;
 
     /// <summary>
     /// 地形种子（-1 = 随机）
     /// </summary>
     public const int TERRAIN_SEED = -1;
-
-    // ========== 玩家初始值 ==========
-
-    /// <summary>
-    /// 初始资产
-    /// </summary>
-    public const long INITIAL_ASSETS = 1000;
 
     // ========== 城市配置 ==========
 

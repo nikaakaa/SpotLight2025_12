@@ -20,6 +20,8 @@ public class GameLogicUI : MonoBehaviour
     [Header("Buff 列表生成")]
     [SerializeField] private bool reuseFirstChildAsTemplate = true;
     [SerializeField] private float buffItemFontSize = 20f;
+    [SerializeField, Tooltip("Addressables 中的 Buff 项预制体名称，留空则动态创建")]
+    private string buffItemPrefabName = "";
 
     private Player boundPlayer;
     private CityNode currentNode;
@@ -53,6 +55,11 @@ public class GameLogicUI : MonoBehaviour
 
     private void Update()
     {
+        // 实时刷新 UI 数据
+        RefreshMoney(PlayerRunTimeInfo.Current?.Assets ?? 0);
+        RefreshStatistics();
+        RefreshCurrentNodeInfo();
+
         if (enableHoverRaycastForNodeInfo)
         {
             UpdateHoveredNodeInfo();
@@ -154,33 +161,27 @@ public class GameLogicUI : MonoBehaviour
     {
         if (StatisticsText == null) return;
 
-        var info = PlayerRunTimeInfo.Current;
-        if (info == null)
+        // 获取航空系统数据
+        var aviationSystem = GameProcedure.Instance?.GameLogicState?.aviationSystem;
+        if (aviationSystem == null)
         {
-            StatisticsText.text = "PlayerRunTimeInfo 未初始化";
+            StatisticsText.text = "航空系统未初始化";
             return;
         }
 
-        sb.Clear();
-        sb.AppendLine($"回合: {info.CurrentRound}");
-        sb.AppendLine($"资产: ${info.Assets:N0}");
-        sb.AppendLine($"本回合新增节点: {info.NodesAddedThisRound}");
-        sb.AppendLine($"本回合新增航线: {info.EdgesAddedThisRound}");
-        sb.AppendLine($"累计收益: ${info.TotalIncomeEarned:N0}");
-        sb.AppendLine($"累计成本: ${info.TotalCostPaid:N0}");
-        sb.AppendLine($"最高单回合收益: ${info.HighestRoundIncome:N0}");
-        sb.AppendLine($"最高单回合净利润: ${info.HighestRoundProfit:N0}");
-        sb.AppendLine($"峰值资产: ${info.PeakAssets:N0}");
-        sb.AppendLine($"破产: {(info.IsBankrupt ? "是" : "否")}");
+        int nodeCount = aviationSystem.aviationNodeDict?.Count ?? 0;
+        int edgeCount = aviationSystem.aviationEdgeDict?.Count ?? 0;
 
-        var last = info.LastSettlementResult;
-        if (last != null)
-        {
-            sb.AppendLine("--- 最近结算 ---");
-            sb.AppendLine($"总收益: ${last.totalIncome:N0}");
-            sb.AppendLine($"总成本: ${last.TotalCost:N0}");
-            sb.AppendLine($"净利润: ${last.NetProfit:N0}");
-        }
+        // 检测结构
+        var structures = StructureDetector.DetectAll(aviationSystem);
+        int ringCount = structures?.Rings?.Count ?? 0;
+        int singleLineCount = structures?.SingleLines?.Count ?? 0;
+        int radialCount = structures?.Radials?.Count ?? 0;
+
+        sb.Clear();
+        sb.AppendLine($"节点: {nodeCount}  |  航线: {edgeCount}");
+        sb.AppendLine($"环: {ringCount}  |  单线: {singleLineCount}  |  放射: {radialCount}");
+        sb.Append($"结构总数: {ringCount + singleLineCount + radialCount}");
 
         StatisticsText.text = sb.ToString();
     }
@@ -237,7 +238,7 @@ public class GameLogicUI : MonoBehaviour
             }
 
             // BuffInfo 实现了 IBuffTicker，但这里只能通过公开属性读取
-            string name = string.IsNullOrWhiteSpace(buff.buffData.buffName) ? buff.buffData.name : buff.buffData.buffName;
+            string name = !string.IsNullOrWhiteSpace(buff.buffData.buffName) ? buff.buffData.buffName : $"Buff_{buff.buffData.id}";
             string duration = buff.buffData.isForever ? "∞" : buff.DurationTimer.ToString();
             rows.Add($"  ID:{buff.buffData.id} | {name} | 层:{buff.CurStack} | 时长:{duration}");
         }
@@ -287,21 +288,39 @@ public class GameLogicUI : MonoBehaviour
 
     private TextMeshProUGUI CreateBuffTextItem(Transform parent)
     {
-        var go = new GameObject("BuffItem", typeof(RectTransform));
-        go.transform.SetParent(parent, false);
-
-        var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.raycastTarget = false;
-        if (buffItemFontSize > 0)
+        // 优先使用 Addressables 预制体
+        if (!string.IsNullOrEmpty(buffItemPrefabName))
         {
-            tmp.fontSize = buffItemFontSize;
+            var prefab = AddressablesMgr.Instance.LoadAssetSync<GameObject>(buffItemPrefabName);
+            if (prefab != null)
+            {
+                var go = Instantiate(prefab, parent);
+                var tmp = go.GetComponent<TextMeshProUGUI>();
+                if (tmp != null) return tmp;
+
+                // 如果预制体没有 TMP 组件，尝试子物体
+                tmp = go.GetComponentInChildren<TextMeshProUGUI>();
+                if (tmp != null) return tmp;
+
+                Debug.LogWarning($"[GameLogicUI] 预制体 {buffItemPrefabName} 缺少 TextMeshProUGUI 组件");
+            }
         }
 
-        // 让布局系统更好工作（如果 content 上挂了 VerticalLayoutGroup/ContentSizeFitter）
-        var layout = go.AddComponent<LayoutElement>();
+        // 降级：动态创建
+        var fallbackGo = new GameObject("BuffItem", typeof(RectTransform));
+        fallbackGo.transform.SetParent(parent, false);
+
+        var fallbackTmp = fallbackGo.AddComponent<TextMeshProUGUI>();
+        fallbackTmp.raycastTarget = false;
+        if (buffItemFontSize > 0)
+        {
+            fallbackTmp.fontSize = buffItemFontSize;
+        }
+
+        var layout = fallbackGo.AddComponent<LayoutElement>();
         layout.minHeight = buffItemFontSize > 0 ? buffItemFontSize + 6f : 26f;
 
-        return tmp;
+        return fallbackTmp;
     }
 
     // ========== 节点信息 ==========

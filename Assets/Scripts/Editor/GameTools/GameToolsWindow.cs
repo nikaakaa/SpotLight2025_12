@@ -8,7 +8,7 @@ using UnityEngine;
 
 public class GameToolsWindow : OdinMenuEditorWindow
 {
-    [MenuItem("SpotLight/Game Tools")]
+    [MenuItem("Tools/Game Tools")]
     private static void OpenWindow()
     {
         var window = GetWindow<GameToolsWindow>();
@@ -120,18 +120,42 @@ public class PlayerInfoDebugViewModel
 
 public class BuffDebugViewModel
 {
-    [Title("Add Buff Tools")]
-    [LabelText("Buff Key"), Tooltip("Addressables Resource Key for the Buff")]
-    public string BuffNameInput = "MarketBuff_Fatigue";
+    [Title("Buff Registry")]
+    [Button("Initialize Registry"), GUIColor(0.8f, 0.8f, 1f)]
+    public void InitializeRegistry()
+    {
+        BuffRegistry.Initialize();
+        Debug.Log("[BuffDebugger] BuffRegistry initialized.");
+    }
+
+    [ShowInInspector, DisplayAsString, LabelText("Registered Buffs")]
+    public string RegisteredBuffCount => $"{GetRegisteredBuffNames().Count} buffs available";
+
+    [ShowInInspector, ValueDropdown("GetRegisteredBuffNames")]
+    [LabelText("Select Buff")]
+    public string SelectedBuffName = "MarketBuff_Fatigue";
+
+    private static List<string> GetRegisteredBuffNames()
+    {
+        var names = new List<string>();
+        foreach (var buff in BuffRegistry.GetAllBuffs())
+        {
+            names.Add(buff.buffName);
+        }
+        return names.Count > 0 ? names : new List<string> { "MarketBuff_Fatigue" };
+    }
+
+    [PropertySpace(10)]
+    [Title("Add Buff Actions")]
 
     [HorizontalGroup("AddActions")]
     [Button("Add to Player"), GUIColor(0.5f, 1f, 0.5f)]
     public void AddPlayerBuff()
     {
-        if (Player.Instance != null && !string.IsNullOrEmpty(BuffNameInput))
+        if (Player.Instance != null && !string.IsNullOrEmpty(SelectedBuffName))
         {
-            bool success = Player.Instance.AddPlayerBuff(BuffNameInput);
-            Debug.Log($"[BuffDebugger] Add Player Buff '{BuffNameInput}': {success}");
+            bool success = Player.Instance.AddPlayerBuff(SelectedBuffName);
+            Debug.Log($"[BuffDebugger] Add Player Buff '{SelectedBuffName}': {success}");
         }
         else
         {
@@ -143,10 +167,10 @@ public class BuffDebugViewModel
     [Button("Add to Market"), GUIColor(0.5f, 0.8f, 1f)]
     public void AddMarketBuff()
     {
-        if (Player.Instance != null && !string.IsNullOrEmpty(BuffNameInput))
+        if (Player.Instance != null && !string.IsNullOrEmpty(SelectedBuffName))
         {
-            bool success = Player.Instance.AddMarketBuff(BuffNameInput);
-            Debug.Log($"[BuffDebugger] Add Market Buff '{BuffNameInput}': {success}");
+            bool success = Player.Instance.AddMarketBuff(SelectedBuffName);
+            Debug.Log($"[BuffDebugger] Add Market Buff '{SelectedBuffName}': {success}");
         }
         else
         {
