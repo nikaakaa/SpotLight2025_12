@@ -131,13 +131,20 @@ public class SettlementCalculator
     /// <summary>
     /// 计算结构倍率并应用到节点收益
     /// </summary>
+    /// <summary>
+    /// 计算结构倍率并应用到节点收益 (改为加算逻辑)
+    /// </summary>
     private void ApplyStructureMultipliers(AllStructures structures, SettlementResult result, IGameplayBuffSystem buffSystem)
     {
         if (structures == null) return;
 
+        // 临时存储每个节点的累加倍率加成 (Base 1.0 + Bonus)
+        // Key: NodeIndex, Value: Sum of (StructureMultiplier - 1.0)
+        var nodeBonusMultipliers = new Dictionary<int, float>();
+
         int structureIndex = 0;
 
-        // 处理每种结构类型
+        // Pass 1: 计算每个结构的倍率，并累加到节点
         foreach (var structure in structures.GetAllStructures())
         {
             // 重置修正器
@@ -155,7 +162,7 @@ public class SettlementCalculator
                 result.structureAppliedBuffs[structureIndex] = new List<int>(structureMultiplierModifier.AppliedBuffIds);
             }
 
-            // 应用修正
+            // 应用修正得到该结构的最终倍率
             float finalMultiplier = structureMultiplierModifier.Apply(baseMultiplier);
 
             // 环形结构枢纽惩罚
@@ -169,17 +176,47 @@ public class SettlementCalculator
             // 记录结构倍率
             result.structureMultipliers[structureIndex] = finalMultiplier;
 
-            // 应用倍率到结构中的节点
+            // 计算此结构带来的倍率加成 (例如 1.2 -> +0.2)
+            float bonus = finalMultiplier - 1.0f;
+
+            // 累加到该结构包含的所有节点
             foreach (var node in structure.Nodes)
             {
-                if (result.nodeFinalIncomes.TryGetValue(node.nodeIndex, out float currentIncome))
+                if (!nodeBonusMultipliers.ContainsKey(node.nodeIndex))
                 {
-                    // 累乘（一个节点可能属于多个结构）
-                    result.nodeFinalIncomes[node.nodeIndex] = currentIncome * finalMultiplier;
+                    nodeBonusMultipliers[node.nodeIndex] = 0f;
                 }
+                nodeBonusMultipliers[node.nodeIndex] += bonus;
             }
 
-            // 计算结构总收益
+            structureIndex++;
+        }
+
+        // Pass 2: 应用总倍率到节点最终收益
+        // 最终倍率 = 1.0 + Σ(StructureMultiplier - 1.0)
+        // 确保遍历所有已计算基础收益的节点
+        var nodeIndices = new List<int>(result.nodeBaseIncomes.Keys);
+        foreach (var nodeIndex in nodeIndices)
+        {
+            float baseIncome = result.nodeBaseIncomes[nodeIndex];
+            float totalBonus = nodeBonusMultipliers.ContainsKey(nodeIndex) ? nodeBonusMultipliers[nodeIndex] : 0f;
+
+            // 最终倍率不能小于 0
+            float totalMultiplier = Mathf.Max(0f, 1.0f + totalBonus);
+
+            result.nodeFinalIncomes[nodeIndex] = baseIncome * totalMultiplier;
+
+            // Debug: 如果有倍率变化，打印日志
+            if (Mathf.Abs(totalMultiplier - 1.0f) > 0.001f)
+            {
+                // Debug.Log($"[SettlementCalculator] Node {nodeIndex}: Base={baseIncome}, TotalMult={totalMultiplier} (1+{totalBonus})");
+            }
+        }
+
+        // Pass 3: 重新计算结构总收益 (用于显示)
+        // 这里的 TotalIncome 定义为：该结构包含的所有节点的最终收益之和
+        foreach (var structure in structures.GetAllStructures())
+        {
             float structureTotalIncome = 0f;
             foreach (var node in structure.Nodes)
             {
@@ -189,11 +226,9 @@ public class SettlementCalculator
                 }
             }
             structure.TotalIncome = structureTotalIncome;
-
-            structureIndex++;
         }
 
-        Debug.Log($"[SettlementCalculator] 应用结构倍率完成: {structureIndex} 个结构");
+        Debug.Log($"[SettlementCalculator] 应用结构倍率完成 (加算模式): {structureIndex} 个结构");
     }
 
     #endregion
