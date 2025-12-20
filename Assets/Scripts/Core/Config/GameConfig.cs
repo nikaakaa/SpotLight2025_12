@@ -58,11 +58,11 @@ public static class GameConfig
     /// </summary>
     public static readonly List<NodeConfig> NodeConfigs = new List<NodeConfig>
     {
-        new NodeConfig(1001, "小型机场", "1级", 1, 200),
-        new NodeConfig(1002, "中型机场", "2级", 2, 500),
-        new NodeConfig(1003, "大型机场", "3级", 3, 1000),
-        new NodeConfig(1004, "国际机场", "4级", 4, 2000),
-        new NodeConfig(1005, "枢纽机场", "5级", 5, 3000),
+        new NodeConfig(1001, "小型机场", "1级", 12, 200),
+        new NodeConfig(1002, "中型机场", "2级", 30, 500),
+        new NodeConfig(1003, "大型机场", "3级", 55, 1000),
+        new NodeConfig(1004, "国际机场", "4级", 85, 2000),
+        new NodeConfig(1005, "枢纽机场", "5级", 120, 3000),
     };
 
     /// <summary>
@@ -120,20 +120,20 @@ public static class GameConfig
     {
         // 基础移动成本（A* 寻路权重）
         public static float DeepWater = 0f;       // 不可通过
-        public static float ShallowWater = 3.0f;  // 水上成本高
-        public static float Coast = 1.2f;         // 海岸
+        public static float ShallowWater = 2.2f;  // 水上成本高
+        public static float Coast = 1.15f;        // 海岸
         public static float Plain = 1.0f;         // 平原（基准）
-        public static float Hill = 1.5f;          // 丘陵
-        public static float Mountain = 2.5f;      // 山地
+        public static float Hill = 1.25f;         // 丘陵
+        public static float Mountain = 1.8f;      // 山地
         public static float HighMountain = 0f;    // 不可通过
 
         // 建造成本倍率（影响航线建造费用）
         public static float BuildDeepWater = 0f;
-        public static float BuildShallowWater = 1.5f;
-        public static float BuildCoast = 1.2f;
+        public static float BuildShallowWater = 1.35f;
+        public static float BuildCoast = 1.15f;
         public static float BuildPlain = 1.0f;
-        public static float BuildHill = 1.3f;
-        public static float BuildMountain = 2.0f;
+        public static float BuildHill = 1.2f;
+        public static float BuildMountain = 1.7f;
         public static float BuildHighMountain = 0f;
     }
 

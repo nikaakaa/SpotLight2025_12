@@ -27,22 +27,41 @@ public static class NodeSpawnConfig
     /// <summary>
     /// 每回合生成的节点数量（基础值）
     /// </summary>
-    public const int NodesPerRound = 3;
+    public const int NodesPerRound = 1;
 
-    // ========== 生成距离配置 ==========
+    // ========== 生成距离配置（基于地图大小动态计算） ==========
 
     /// <summary>
-    /// 各等级节点的生成距离范围 [等级] = (最小距离, 最大距离)
+    /// 各等级节点的生成距离比例 [等级] = (最小比例, 最大比例)
+    /// 比例相对于地图半径 GameConfig.MAP_RADIUS
     /// 越高级的节点，生成位置离已有节点越远
     /// </summary>
-    public static readonly Dictionary<int, (int minDist, int maxDist)> LevelDistanceRange = new()
+    private static readonly Dictionary<int, (float minRatio, float maxRatio)> LevelDistanceRatio = new()
     {
-        { 1, (3, 5) },    // lv1：近距离，城市群边缘
-        { 2, (3, 6) },    // lv2：近距离，略微外扩
-        { 3, (5, 8) },    // lv3：中等距离，城市群交界
-        { 4, (8, 12) },   // lv4：远距离，新城市群核心
-        { 5, (10, 15) },  // lv5：最远距离，独立枢纽
+        { 1, (0.03f, 0.05f) },   // lv1：3-5% 地图半径（近距离）
+        { 2, (0.03f, 0.08f) },   // lv2：3-8% 地图半径
+        { 3, (0.08f, 0.15f) },   // lv3：8-15% 地图半径（中距离）
+        { 4, (0.20f, 0.40f) },   // lv4：20-40% 地图半径（远距离）
+        { 5, (0.50f, 0.80f) },   // lv5：50-80% 地图半径（横跨地图）
     };
+
+    /// <summary>
+    /// 获取指定等级的生成距离范围（动态计算，基于地图大小）
+    /// </summary>
+    public static (int minDist, int maxDist) GetDistanceRange(int level)
+    {
+        int mapRadius = GameConfig.MAP_RADIUS;
+
+        if (LevelDistanceRatio.TryGetValue(level, out var ratio))
+        {
+            int minDist = Mathf.Max(3, Mathf.RoundToInt(mapRadius * ratio.minRatio));
+            int maxDist = Mathf.Max(minDist + 1, Mathf.RoundToInt(mapRadius * ratio.maxRatio));
+            return (minDist, maxDist);
+        }
+
+        // 默认：最小间距
+        return (MinNodeDistance, MinNodeDistance + 2);
+    }
 
     // ========== 等级生成权重配置 ==========
 
@@ -155,16 +174,6 @@ public static class NodeSpawnConfig
         }
 
         return 1; // 默认返回 lv1
-    }
-
-    /// <summary>
-    /// 获取指定等级的生成距离范围
-    /// </summary>
-    public static (int minDist, int maxDist) GetDistanceRange(int level)
-    {
-        if (LevelDistanceRange.TryGetValue(level, out var range))
-            return range;
-        return (3, 5); // 默认范围
     }
 
     /// <summary>

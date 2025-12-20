@@ -4,7 +4,8 @@ using UnityEngine;
 /// 城市节点视图组件
 /// 挂载在城市节点预制体上，只负责显示
 /// 交互逻辑由 ConnectModifyRouteState 通过射线检测处理
-/// 需要 Collider2D 组件
+/// 
+/// 标识显示：直接在预制体上添加子物体作为标识
 /// </summary>
 public class CityNode : MonoBehaviour
 {
@@ -17,8 +18,15 @@ public class CityNode : MonoBehaviour
     [SerializeField] private Color selectedColor = Color.green;
     [SerializeField] private Color hoverColor = Color.yellow;
 
+    [Header("标识设置（子物体）")]
+    [SerializeField] private Transform markerTransform;  // 拖入标识子物体
+    [SerializeField] private float showZoomThreshold = 30f;  // 缩放超过此值显示标识
+    [SerializeField] private float referenceZoom = 20f;  // 参考缩放值
+    [SerializeField] private float markerBaseScale = 1f;  // 标识基础大小
+
     private bool isSelected = false;
     private bool isHovered = false;
+    private Camera mainCamera;
 
     void Awake()
     {
@@ -32,20 +40,50 @@ public class CityNode : MonoBehaviour
 
     void Start()
     {
-        // 安全检查：如果数据为空，可能是因为热重载或者未通过 AviationSystem 创建
+        mainCamera = Camera.main;
+
+        // 安全检查
         if (aviationNode == null)
         {
-            Debug.LogError($"[CityNode] '{name}' 的 aviationNode 数据为空！\n" +
-                           "可能是因为在运行过程中修改了代码导致热重载(Hot Reload)，丢失了非序列化引用。\n" +
-                           "请重新运行游戏 (Stop -> Play)。");
+            Debug.LogError($"[CityNode] '{name}' 的 aviationNode 数据为空！");
             return;
         }
         UpdateVisual();
     }
 
+    void LateUpdate()
+    {
+        // 更新标识显示
+        if (markerTransform != null && mainCamera != null)
+        {
+            float zoom = GetCameraZoom();
+            bool shouldShow = zoom >= showZoomThreshold;
+
+            // 显示/隐藏标识
+            if (markerTransform.gameObject.activeSelf != shouldShow)
+            {
+                markerTransform.gameObject.SetActive(shouldShow);
+            }
+
+            // 动态缩放以保持屏幕固定大小
+            if (shouldShow)
+            {
+                float scale = (zoom / referenceZoom) * markerBaseScale;
+                markerTransform.localScale = Vector3.one * scale;
+            }
+        }
+    }
+
+    private float GetCameraZoom()
+    {
+        if (mainCamera == null) return referenceZoom;
+        return mainCamera.orthographic
+            ? mainCamera.orthographicSize
+            : Mathf.Abs(mainCamera.transform.position.z);
+    }
+
     /// <summary>
     /// 初始化节点视图（由 AviationSystem 调用）
-    /// 视图层单向引用运行时层
     /// </summary>
     public void Initialize(AviationNode node)
     {
@@ -53,43 +91,29 @@ public class CityNode : MonoBehaviour
         UpdateVisual();
     }
 
-    /// <summary>
-    /// 设置选中状态（由 ConnectModifyRouteState 调用）
-    /// </summary>
     public void SetSelected(bool selected)
     {
         isSelected = selected;
         UpdateVisual();
     }
 
-    /// <summary>
-    /// 设置悬停状态（由 ConnectModifyRouteState 调用）
-    /// </summary>
     public void SetHovered(bool hovered)
     {
         isHovered = hovered;
         UpdateVisual();
     }
 
-    /// <summary>
-    /// 更新视觉效果
-    /// </summary>
     private void UpdateVisual()
     {
         if (spriteRenderer != null)
         {
             if (isSelected)
-            {
                 spriteRenderer.color = selectedColor;
-            }
             else if (isHovered)
-            {
                 spriteRenderer.color = hoverColor;
-            }
             else
-            {
                 spriteRenderer.color = normalColor;
-            }
         }
     }
 }
+

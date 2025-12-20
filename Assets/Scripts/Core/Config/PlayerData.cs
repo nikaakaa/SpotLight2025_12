@@ -25,12 +25,12 @@ public static class PlayerData
     /// <summary>
     /// 每格航线建造基础成本
     /// </summary>
-    public const int EDGE_BUILD_COST_PER_TILE = 10;
+    public const int EDGE_BUILD_COST_PER_TILE = 8;
 
     /// <summary>
     /// 拆除航线返还比例（0.0 - 1.0）
     /// </summary>
-    public const float EDGE_REMOVE_REFUND_RATE = 0.5f;
+    public const float EDGE_REMOVE_REFUND_RATE = 0.75f;
 
     // ========== 节点成本配置 ==========
 
@@ -38,42 +38,42 @@ public static class PlayerData
     /// 节点升级基础成本
     /// 节点成本 = 节点等级 × NODE_UPGRADE_BASE_COST
     /// </summary>
-    public const int NODE_UPGRADE_BASE_COST = 100;
+    public const int NODE_UPGRADE_BASE_COST = 80;
 
     // ========== 结算规则配置 ==========
 
     /// <summary>
     /// 破产阈值（资产低于此值判定破产）
     /// </summary>
-    public const long BANKRUPTCY_THRESHOLD = 0;
+    public const long BANKRUPTCY_THRESHOLD = -2000;
 
     /// <summary>
     /// 反盲目扩张惩罚阈值（Buff #15）
     /// 本回合新增节点数 >= 此值时触发
     /// </summary>
-    public const int EXPANSION_PENALTY_THRESHOLD = 2;
+    public const int EXPANSION_PENALTY_THRESHOLD = 4;
 
     /// <summary>
     /// 反盲目扩张惩罚倍率（Buff #15）
     /// </summary>
-    public const float EXPANSION_PENALTY_MULTIPLIER = 1.3f;
+    public const float EXPANSION_PENALTY_MULTIPLIER = 1.15f;
 
     // ========== 结构倍率配置 ==========
 
     /// <summary>
     /// 环形结构基础倍率
     /// </summary>
-    public const float RING_BASE_MULTIPLIER = 1.5f;
+    public const float RING_BASE_MULTIPLIER = 1.45f;
 
     /// <summary>
     /// 单线结构基础倍率
     /// </summary>
-    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.0f;
+    public const float SINGLE_LINE_BASE_MULTIPLIER = 1.1f;
 
     /// <summary>
     /// 放射结构基础倍率（枢纽）
     /// </summary>
-    public const float RADIAL_BASE_MULTIPLIER = 1.2f;
+    public const float RADIAL_BASE_MULTIPLIER = 1.25f;
 
     // ========== 枢纽规则配置 ==========
 
@@ -85,24 +85,24 @@ public static class PlayerData
     /// <summary>
     /// Lv4 机场最少航线数量（Buff #19）
     /// </summary>
-    public const int LV4_MIN_EDGE_COUNT = 6;
+    public const int LV4_MIN_EDGE_COUNT = 5;
 
     /// <summary>
     /// Lv5 机场最少航线数量（Buff #19）
     /// </summary>
-    public const int LV5_MIN_EDGE_COUNT = 8;
+    public const int LV5_MIN_EDGE_COUNT = 7;
 
     /// <summary>
     /// 超额设施闲置惩罚（Buff #19）
     /// </summary>
-    public const float UNDERUTILIZED_PENALTY = 0.6f;
+    public const float UNDERUTILIZED_PENALTY = 0.8f;
 
     // ========== 市场趋势 Buff 配置 ==========
 
     /// <summary>
     /// 每回合随机市场 Buff 数量
     /// </summary>
-    public const int MARKET_BUFF_COUNT_PER_ROUND = 2;
+    public const int MARKET_BUFF_COUNT_PER_ROUND = 1;
 
     // ========== 商店配置 ==========
 

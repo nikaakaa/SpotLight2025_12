@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// 随机节点状态 - 使用簇状生长算法生成节点
 /// 特点：大部分节点靠近已有节点生成，越高级的节点越稀有且生成越远
+/// 摄像机会缓动到新生成的节点位置
 /// </summary>
 public class RandomNodeState : LeafState<GameProcedureContext>
 {
@@ -19,6 +21,7 @@ public class RandomNodeState : LeafState<GameProcedureContext>
         if (AviationSystem.Instance == null)
         {
             Debug.LogWarning($"[{Name}] AviationSystem 未初始化，跳过节点生成");
+            ctx.Next();
             return;
         }
 
@@ -32,11 +35,26 @@ public class RandomNodeState : LeafState<GameProcedureContext>
         // 计算本回合生成的节点数量
         int nodeCount = NodeSpawnConfig.NodesPerRound;
 
-        // 使用簇状生长算法生成节点
-        // 该算法会根据回合数自动调整节点等级概率和生成距离
-        AviationSystem.Instance.GenerateNodesWithClusterGrowth(nodeCount, currentRound);
+        // 使用簇状生长算法生成节点（返回生成的坐标）
+        List<HexCoord> generatedCoords = AviationSystem.Instance.GenerateNodesWithClusterGrowth(nodeCount, currentRound);
 
         Debug.Log($"[{Name}] 簇状生长节点生成完成，回合 {currentRound}，当前节点数: {AviationSystem.Instance.aviationNodeDict.Count}");
+
+        // 摄像机移动到新生成的第一个节点位置
+        if (generatedCoords != null && generatedCoords.Count > 0)
+        {
+            HexCoord firstNewNode = generatedCoords[0];
+
+            if (CinemachineCameraController.Instance != null)
+            {
+                // 摄像机缓动到新节点位置
+                CinemachineCameraController.Instance.MoveToHex(firstNewNode, 0.8f);
+                Debug.Log($"[{Name}] 摄像机移动到新节点: {firstNewNode}");
+            }
+        }
+
+        // 自动进入下一状态
+        ctx.Next();
     }
 
     protected override void OnUpdate(GameProcedureContext ctx)

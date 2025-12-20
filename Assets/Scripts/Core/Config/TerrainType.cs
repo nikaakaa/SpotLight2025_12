@@ -8,7 +8,7 @@ public enum TerrainType
     Coast = 2,        // 海岸/沙滩 - 可通过
     Plain = 3,        // 平原 - 基础成本
     Hill = 4,         // 丘陵 - 稍高成本
-    Mountain = 5,     // 山地 - 高成本
+    Mountain = 5,     // 山地 - 高成�?
     HighMountain = 6  // 高山 - 不可通过
 }
 
@@ -22,30 +22,15 @@ public static class TerrainTypeExtensions
     /// </summary>
     public static bool IsPassable(this TerrainType type)
     {
-        return type switch
-        {
-            TerrainType.DeepWater => false,
-            TerrainType.HighMountain => false,
-            _ => true
-        };
+        return GameConfig.IsTerrainPassable(type);
     }
 
     /// <summary>
-    /// 移动成本（用于 A* 寻路）
+    /// 移动成本（用�?A* 寻路�?
     /// </summary>
     public static float GetMoveCost(this TerrainType type)
     {
-        return type switch
-        {
-            TerrainType.DeepWater => 0f,      // 不可通过
-            TerrainType.ShallowWater => 2.0f, // 水上航线成本高
-            TerrainType.Coast => 1.2f,
-            TerrainType.Plain => 1.0f,        // 基准成本
-            TerrainType.Hill => 1.3f,
-            TerrainType.Mountain => 1.8f,
-            TerrainType.HighMountain => 0f,   // 不可通过
-            _ => 1.0f
-        };
+        return GameConfig.GetTerrainMoveCost(type);
     }
 
     /// <summary>
@@ -53,17 +38,7 @@ public static class TerrainTypeExtensions
     /// </summary>
     public static float GetBuildCostMultiplier(this TerrainType type)
     {
-        return type switch
-        {
-            TerrainType.DeepWater => 0f,      // 不可建造
-            TerrainType.ShallowWater => 1.5f, // 水上建造贵
-            TerrainType.Coast => 1.2f,
-            TerrainType.Plain => 1.0f,        // 基准
-            TerrainType.Hill => 1.3f,
-            TerrainType.Mountain => 2.0f,     // 山区建造贵
-            TerrainType.HighMountain => 0f,   // 不可建造
-            _ => 1.0f
-        };
+        return GameConfig.GetTerrainBuildCost(type);
     }
 
     /// <summary>
@@ -81,7 +56,7 @@ public static class TerrainTypeExtensions
     }
 
     /// <summary>
-    /// 获取地形颜色（用于可视化）
+    /// 获取地形颜色（用于可视化�?
     /// </summary>
     public static UnityEngine.Color GetColor(this TerrainType type)
     {
@@ -116,3 +91,4 @@ public static class TerrainTypeExtensions
         };
     }
 }
+

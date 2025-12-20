@@ -386,8 +386,11 @@ public class AviationSystem
     /// <param name="count">生成数量</param>
     /// <param name="round">当前回合数（影响节点等级概率）</param>
     /// <param name="parent">父物体</param>
-    public void GenerateNodesWithClusterGrowth(int count, int round, Transform parent = null)
+    /// <returns>生成的节点坐标列表（用于摄像机跟随等）</returns>
+    public List<HexCoord> GenerateNodesWithClusterGrowth(int count, int round, Transform parent = null)
     {
+        var generatedCoords = new List<HexCoord>();
+
         // 1. 获取所有可放置城市的坐标
         List<HexCoord> candidates;
 
@@ -419,9 +422,12 @@ public class AviationSystem
             // 根据等级获取对应的节点配置
             int configId = GameConfig.GetNodeConfigIdByLevel(level);
             AddNodeWithView(configId, coord, parent);
+            generatedCoords.Add(coord);
         }
 
         Debug.Log($"[AviationSystem] 簇状生长：生成了 {spawnResults.Count} 个城市节点（回合 {round}）");
+
+        return generatedCoords;
     }
 
     /// <summary>
