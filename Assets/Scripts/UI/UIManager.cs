@@ -9,6 +9,7 @@ using UnityEngine.UI;
 /// 负责 UI 面板的异步加载、实例化和显示管理
 /// 具体 UI 逻辑由各个 Panel 自身的脚本处理
 /// </summary>
+[DefaultExecutionOrder(-100)]
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }

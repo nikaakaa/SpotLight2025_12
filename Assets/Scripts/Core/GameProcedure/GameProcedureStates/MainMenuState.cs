@@ -28,14 +28,13 @@ public class MainMenuState : LeafState<GameProcedureContext>
         }
 
         // 显示主菜单 UI
-        if (UIManager.Instance != null)
+        
+        UIManager.Instance.HideAllPanels(); // 确保其他面板关闭
+        UIManager.Instance.ShowPanel("MainSceneUI", (panel) =>
         {
-            UIManager.Instance.HideAllPanels(); // 确保其他面板关闭
-            UIManager.Instance.ShowPanel("MainSceneUI", (panel) =>
-            {
-                Debug.Log("主菜单 UI 加载完成");
-            });
-        }
+            Debug.Log("主菜单 UI 加载完成");
+        });
+        
     }
 
     protected override void OnUpdate(GameProcedureContext ctx)
